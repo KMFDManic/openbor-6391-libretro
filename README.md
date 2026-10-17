@@ -10,6 +10,7 @@ right one for each game:
 | **v3.0 Build 4153** (2015) | [DCurrent/openbor@4a276c8b](https://github.com/DCurrent/openbor/commit/4a276c8b81fe0fc96d0f98b0e535da802c7417f7) | 2014–2016 mods, e.g. *Super Final Fight Gold Plus* |
 | **v3.0 Build 6391** (2018) | [DCurrent/openbor tag v6391](https://github.com/DCurrent/openbor/tree/v6391) | the long-lived "stable" most mods were built with |
 | **v4.0 Build 7555** (2024) | [DCurrent/openbor@b1676f97](https://github.com/DCurrent/openbor/commit/b1676f97) | recent mods, e.g. *Mighty Final Fight Forever* |
+| **v4.0 Build 8025** (2026) | [DCurrent/openbor@787b6770](https://github.com/DCurrent/openbor/commit/787b6770409935137579715febf80cf7a529b748) | latest upstream; *Streets of Rage X* (see below) |
 
 OpenBOR versions are not fully compatible with each other: newer mods use
 commands, script functions and constants that older engines reject, and older
@@ -22,7 +23,7 @@ Load a mod's `.pak` file as content.
 
 ### How the engine is chosen
 
-1. **Core option** `Engine version` (`auto`, `7555`, `6391`, `4153`, `3711`). It can be
+1. **Core option** `Engine version` (`auto`, `8025`, `7555`, `6391`, `4153`, `3711`). It can be
    saved per game with RetroArch's per-game core options. A forced version
    is used as is.
 2. **Auto-detection** (default). The `.pak` is scanned before starting: the
@@ -78,6 +79,28 @@ also shown as an on-screen message.
 Buttons can also be remapped from the engine's own *Options → Control Options*
 menu (names are shown as `P1 X`, `P2 Start`, …), or from the frontend.
 Rumble is supported.
+
+### Streets of Rage X
+
+SoRX ships with its own engine (a fork of upstream OpenBOR from mid 2026)
+and a pak whose 4-byte magic was changed so stock engines refuse it; the
+contents themselves are plain. To play it with this core:
+
+1. Restore the standard header (only the magic is rewritten, after checking
+   that every file in the pak is plain data):
+   `python3 tools/pak_fix_magic.py SORX.pak --in-place`
+2. Keep the game's layout and load `Paks/SORX.pak` — the name matters: a
+   startup script reads `Paks/SORX.pak` from the game folder to check it.
+
+It runs on the build 8025 engine, which in this core also provides the two
+script extensions of the SoRX engine that the game uses:
+`getplayerproperty(p, "device_name")` (reported as `"RetroPad"`) and
+`getplayerproperty(p, "button_<action>")` (the bound button, with Xbox-style
+names so the game's on-screen prompts pick the right icons).
+
+Loose files that scripts open with relative paths (`Paks/...`, `Saves/...`)
+are resolved against the game folder — the folder containing `Paks/`, or the
+pak's own folder — like the original executable's working directory.
 
 ## Building
 
@@ -156,7 +179,9 @@ damage-over-time arrays.
   in place). Each engine can be started once per core load; to load another
   game, close the content (RetroArch reloads the core).
 * WebM video cutscenes are not supported (skipped, as on upstream builds
-  without WebM). Animated GIF scenes work.
+  without WebM). Animated GIF scenes work. Games that use video for menus
+  show a black screen there (SoRX: logos, intro and the title animation —
+  press Start to continue).
 * Gamma correction from the video menu is ignored (brightness works), as in
   the upstream software renderers.
 * Engine 3711 only accepts the numeric `video N` modes of its time.

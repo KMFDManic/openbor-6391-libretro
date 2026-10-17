@@ -5,12 +5,12 @@
 
 int main(int argc, char **argv)
 {
-    static const int ids[] = { 3711, 4153, 6391, 7555 };
+    static const int ids[] = { 3711, 4153, 6391, 7555, 8025 };
     int i;
     for (i = 1; i < argc; i++)
     {
         ob_detect_result r;
-        ob_detect_version(argv[i], ids, 4, &r);
+        ob_detect_version(argv[i], ids, 5, &r);
         printf("%s: %d (%s)\n", argv[i], r.version, r.reason);
     }
     return 0;

@@ -5,7 +5,7 @@ supported_extensions = "pak"
 corename = "OpenBOR"
 license = "BSD"
 permissions = ""
-display_version = "3711 / 4153 / 6391 / 7555"
+display_version = "3711 / 4153 / 6391 / 7555 / 8025"
 categories = "Game engine"
 
 # Hardware Information
@@ -28,4 +28,4 @@ needs_fullpath = "true"
 disk_control = "false"
 is_experimental = "true"
 
-description = "Libretro port of the OpenBOR beat 'em up engine containing four official releases (v3.0 Build 3711, v3.0 Build 4153, v3.0 Build 6391, v4.0 Build 7555). The engine is chosen per game from the contents of the .pak (or forced with the Engine version core option); if it cannot load the game the next one is tried. Load a mod .pak file as content. Settings, high scores and saved games go to <save directory>/OpenBOR/<engine>/."
+description = "Libretro port of the OpenBOR beat 'em up engine containing five official releases (v3.0 Build 3711, v3.0 Build 4153, v3.0 Build 6391, v4.0 Build 7555, v4.0 Build 8025). The engine is chosen per game from the contents of the .pak (or forced with the Engine version core option); if it cannot load the game the next one is tried. Load a mod .pak file as content. Settings, high scores and saved games go to <save directory>/OpenBOR/<engine>/."

@@ -57,6 +57,9 @@ static const struct { int id; engine_accessor get; } engines[] = {
 #ifdef HAVE_ENGINE_7555
     { 7555, ob_engine_7555 },
 #endif
+#ifdef HAVE_ENGINE_8025
+    { 8025, ob_engine_8025 },
+#endif
 };
 #define NUM_ENGINES ((int)(sizeof(engines) / sizeof(engines[0])))
 
