@@ -92,6 +92,7 @@ typedef struct ob_engine
 } ob_engine;
 
 const ob_engine *ob_engine_3711(void);
+const ob_engine *ob_engine_4153(void);
 const ob_engine *ob_engine_6391(void);
 const ob_engine *ob_engine_7555(void);
 

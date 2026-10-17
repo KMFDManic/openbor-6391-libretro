@@ -48,6 +48,9 @@ static const struct { int id; engine_accessor get; } engines[] = {
 #ifdef HAVE_ENGINE_3711
     { 3711, ob_engine_3711 },
 #endif
+#ifdef HAVE_ENGINE_4153
+    { 4153, ob_engine_4153 },
+#endif
 #ifdef HAVE_ENGINE_6391
     { 6391, ob_engine_6391 },
 #endif

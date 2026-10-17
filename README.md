@@ -7,6 +7,7 @@ right one for each game:
 | Engine | Upstream source | Typical mods |
 |---|---|---|
 | **v3.0 Build 3711** (2012) | [DCurrent/openbor@6ec17fa4](https://github.com/DCurrent/openbor/commit/6ec17fa411b237f789c910e1234a33a618ab236d) | classic 3.x / Beats of Rage era mods |
+| **v3.0 Build 4153** (2015) | [DCurrent/openbor@4a276c8b](https://github.com/DCurrent/openbor/commit/4a276c8b81fe0fc96d0f98b0e535da802c7417f7) | 2014–2016 mods, e.g. *Super Final Fight Gold Plus* |
 | **v3.0 Build 6391** (2018) | [DCurrent/openbor tag v6391](https://github.com/DCurrent/openbor/tree/v6391) | the long-lived "stable" most mods were built with |
 | **v4.0 Build 7555** (2024) | [DCurrent/openbor@b1676f97](https://github.com/DCurrent/openbor/commit/b1676f97) | recent mods, e.g. *Mighty Final Fight Forever* |
 
@@ -21,13 +22,15 @@ Load a mod's `.pak` file as content.
 
 ### How the engine is chosen
 
-1. **Core option** `Engine version` (`auto`, `7555`, `6391`, `3711`). It can be
+1. **Core option** `Engine version` (`auto`, `7555`, `6391`, `4153`, `3711`). It can be
    saved per game with RetroArch's per-game core options. A forced version
    is used as is.
 2. **Auto-detection** (default). The `.pak` is scanned before starting: the
    commands of `models.txt`, `levels.txt` and of every model and level file
    they reference, plus the scripts' builtin functions, `openborconstant()`
-   names and quoted property/variant names, and the `video WxH` syntax. Each
+   names and the names passed to property/variant functions
+   (`getentityproperty(e, "name")`, `openborvariant("name")`, ...), and the
+   `video WxH` syntax. Each
    engine's vocabulary is extracted from its own sources
    (`tools/gen_detect_tables.py` → `common/detect_tables.h`). The engine
    with the fewest unknown items wins; on a tie the **oldest** one is chosen,
@@ -93,6 +96,10 @@ make SYSTEM_ZLIB=1 SYSTEM_LIBPNG=1 SYSTEM_VORBIS=1   # use system libraries
 `./build.sh` wraps the same commands (`./build.sh win` for a MinGW cross build,
 `./build.sh test some.pak` for a build plus a headless smoke test).
 
+Build numbers are upstream commit counts (`git rev-list --count`), which is
+how each engine's commit was identified. Note that the upstream tag `v4153`
+is misnamed: it points to build 4504.
+
 ## How it works
 
 ### Several engines in one binary
@@ -136,7 +143,8 @@ Changes to upstream engine files are kept minimal and guarded by
 them): log/save paths, the loading-screen refresh clock, forced 16-bit/44.1 kHz
 output where the engine still allowed other rates, the rumble entry in the
 control menu, the shutdown/error hooks, and — for build 3711 — larger save
-path buffers (they were 128 bytes) and `exit()` replaced by the port's exit.
+path buffers (builds 3711 and 4153; they were 128 bytes) and `exit()`
+replaced by the port's exit (3711).
 Two upstream memory bugs found with valgrind are fixed the same way: build
 6391 allocated the per-frame collision box lists for one entry but filled
 `max_collisons` (2) of them, and build 3711 iterated one element past the

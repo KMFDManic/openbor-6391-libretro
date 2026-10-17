@@ -348,12 +348,26 @@ static int is_c_keyword(const char *w)
     return 0;
 }
 
-/* Collects builtin calls, openborconstant() names, quoted property names and
- * the names of functions the script defines itself. */
+/* Functions whose quoted arguments are property / variant names */
+static int is_property_function(const char *f)
+{
+    char low[64];
+    size_t i;
+    if (strlen(f) >= sizeof(low)) return 0;
+    for (i = 0; f[i]; i++) low[i] = (char)tolower((unsigned char)f[i]);
+    low[i] = 0;
+    return strstr(low, "property") || strstr(low, "variant");
+}
+
+/* Collects builtin calls, openborconstant() names, property names quoted as
+ * arguments of property/variant functions, and the names of functions the
+ * script defines itself. */
 static void scan_script(scan_t *s, const char *src)
 {
     const char *p = src;
     char word[128], prev[128] = "";
+    char calls[32][128];         /* function name for each open parenthesis */
+    int depth = 0;
 
     while (*p)
     {
@@ -380,14 +394,13 @@ static void scan_script(scan_t *s, const char *src)
             }
             word[n] = 0;
             if (*p == '"') p++;
-            if (!strcasecmp(prev, "openborconstant"))
-                add_token(s, CAT_CONST, word);
-            else if (n > 0 && n < 48)
+            if (depth > 0 && depth <= 32)
             {
-                int i, ok = 1;
-                for (i = 0; i < n; i++)
-                    if (!isalnum((unsigned char)word[i]) && word[i] != '_' && word[i] != '.') ok = 0;
-                if (ok) add_token(s, CAT_PROP, word);
+                const char *fn = calls[depth - 1];
+                if (!strcasecmp(fn, "openborconstant"))
+                    add_token(s, CAT_CONST, word);
+                else if (n > 0 && n < 48 && is_property_function(fn))
+                    add_token(s, CAT_PROP, word);
             }
             prev[0] = 0;
             continue;
@@ -408,11 +421,27 @@ static void scan_script(scan_t *s, const char *src)
                     add_userfunc(s, word);
                 else
                     add_token(s, CAT_BUILTIN, word);
+                if (depth < 32) snprintf(calls[depth], sizeof(calls[depth]), "%s", word);
+                depth++;
+                p = q + 1;
+                prev[0] = 0;
+                continue;
             }
             snprintf(prev, sizeof(prev), "%s", word);
             continue;
         }
-        if (!isspace((unsigned char)*p) && *p != '(')
+        if (*p == '(')
+        {
+            if (depth < 32) calls[depth][0] = 0;
+            depth++;
+        }
+        else if (*p == ')')
+        {
+            if (depth > 0) depth--;
+        }
+        else if (*p == ';' || *p == '{' || *p == '}')
+            depth = 0;
+        if (!isspace((unsigned char)*p))
             prev[0] = 0;
         p++;
     }
