@@ -34,6 +34,11 @@ extern char logsDir[MAX_FILENAME_LEN];
 extern char screenShotsDir[MAX_FILENAME_LEN];
 extern char rootDir[MAX_FILENAME_LEN]; /* ends with a slash */
 
+#include "ob_api.h"
+
+/* Host services, set by ob_engine->set_host() (see glue.c) */
+extern const ob_host *libretro_host;
+
 /* Builds "<rootDir><relPath>" into a static buffer (used for log files). */
 char *libretro_root_path(const char *relPath);
 
