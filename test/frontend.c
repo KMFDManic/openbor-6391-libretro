@@ -124,6 +124,24 @@ static bool environ_cb(unsigned cmd, void *data)
         printf("[env] frame %ld SHUTDOWN\n", frame_no);
         shutdown_flag = 1;
         return true;
+    case RETRO_ENVIRONMENT_GET_VARIABLE:
+    {
+        /* core options from the environment: openbor_engine -> OPENBOR_ENGINE */
+        struct retro_variable *v = data;
+        char name[128];
+        size_t k;
+        for (k = 0; v->key[k] && k < sizeof(name) - 1; k++)
+            name[k] = (v->key[k] >= 'a' && v->key[k] <= 'z') ? v->key[k] - 32 : v->key[k];
+        name[k] = 0;
+        v->value = getenv(name);
+        return v->value != NULL;
+    }
+    case RETRO_ENVIRONMENT_SET_VARIABLES:
+    {
+        const struct retro_variable *v = data;
+        for (; v->key; v++) printf("[env] option %s = %s\n", v->key, v->value);
+        return true;
+    }
     case RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS:
     case RETRO_ENVIRONMENT_SET_CONTROLLER_INFO:
     case RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME:
@@ -353,6 +371,6 @@ int main(int argc, char **argv)
     printf("[result] unload ok\n");
     p_retro_deinit();
     if (wav) { wav_header(wav, audio_frames); fclose(wav); }
-    dlclose(h);
+    if (!getenv("NO_DLCLOSE")) dlclose(h);
     return 0;
 }

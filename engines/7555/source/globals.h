@@ -58,6 +58,10 @@
 #define strnicmp strncasecmp
 #endif
 
+#ifdef LIBRETRO
+#include "libretroport.h"
+#endif
+
 #ifdef VITA
 #include <stdarg.h>
 #include "vitaport.h"

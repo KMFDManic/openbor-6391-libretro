@@ -62,6 +62,11 @@ typedef void DIR;
 #include "savepng.h"
 #endif
 
+#ifdef LIBRETRO
+#include "libretroport.h"
+#include "savepng.h"
+#endif
+
 #ifdef WIN
 #define MKDIR(x) mkdir(x)
 #elif VITA
@@ -84,6 +89,13 @@ typedef void DIR;
 #define READ_LOGFILE(type)   type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "rt") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "rt")
 #define COPY_ROOT_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/"); strcat(buf, name); strcat(buf, "/");
 #define COPY_PAKS_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/Paks/"); strcat(buf, name);
+#elif LIBRETRO
+#define CHECK_LOGFILE(type)  type ? fileExists(libretro_root_path("Logs/OpenBorLog.txt")) : fileExists(libretro_root_path("Logs/ScriptLog.txt"))
+#define OPEN_LOGFILE(type)   type ? fopen(libretro_root_path("Logs/OpenBorLog.txt"), "wt") : fopen(libretro_root_path("Logs/ScriptLog.txt"), "wt")
+#define APPEND_LOGFILE(type) type ? fopen(libretro_root_path("Logs/OpenBorLog.txt"), "at") : fopen(libretro_root_path("Logs/ScriptLog.txt"), "at")
+#define READ_LOGFILE(type)   type ? fopen(libretro_root_path("Logs/OpenBorLog.txt"), "rt") : fopen(libretro_root_path("Logs/ScriptLog.txt"), "rt")
+#define COPY_ROOT_PATH(buf, name) strcpy(buf, rootDir); strcat(buf, name); strcat(buf, "/");
+#define COPY_PAKS_PATH(buf, name) strcpy(buf, paksDir); strcat(buf, "/"); strcat(buf, name);
 #elif ANDROID
 //msmalik681 now using AndroidRoot fuction from sdlport.c to update all android paths.
 #define Alog AndroidRoot("Logs/OpenBorLog.txt")
@@ -411,7 +423,7 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
         {
 #if PSP
             sprintf(shotname, "ms0:/PICTURE/Beats Of Rage/%s - ScreenShot - %02u.png", modname, shotnum);
-#elif SDL || WII
+#elif SDL || WII || LIBRETRO
             sprintf(shotname, "%s/%s - %04u.png", screenShotsDir, modname, shotnum);
 #else
             sprintf(shotname, "./ScreenShots/%s - %04u.png", modname, shotnum);
