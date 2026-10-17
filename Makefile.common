@@ -1,0 +1,165 @@
+# Source lists shared by Makefile (and future jni/Android.mk builds).
+# CORE_DIR must point at the repository root.
+
+ENGINE_DIR := $(CORE_DIR)/engine
+DEPS_DIR   := $(CORE_DIR)/deps
+
+INCFLAGS := \
+	-I$(ENGINE_DIR)/libretro \
+	-I$(ENGINE_DIR) \
+	-I$(ENGINE_DIR)/source \
+	-I$(ENGINE_DIR)/source/adpcmlib \
+	-I$(ENGINE_DIR)/source/gamelib \
+	-I$(ENGINE_DIR)/source/preprocessorlib \
+	-I$(ENGINE_DIR)/source/ramlib \
+	-I$(ENGINE_DIR)/source/randlib \
+	-I$(ENGINE_DIR)/source/scriptlib \
+	-I$(ENGINE_DIR)/source/openborscript \
+	-I$(ENGINE_DIR)/source/pnglib \
+	-I$(ENGINE_DIR)/source/webmlib \
+	-I$(DEPS_DIR)/libretro-common/include
+
+# ---------------------------------------------------------------------------
+# OpenBOR engine (same object list as the upstream Makefile, minus SDL/WebM)
+# ---------------------------------------------------------------------------
+SOURCES_C := \
+	$(ENGINE_DIR)/openbor.c \
+	$(ENGINE_DIR)/openborscript.c \
+	$(ENGINE_DIR)/source/adpcmlib/adpcm.c \
+	$(ENGINE_DIR)/source/gamelib/draw.c \
+	$(ENGINE_DIR)/source/gamelib/draw16.c \
+	$(ENGINE_DIR)/source/gamelib/draw32.c \
+	$(ENGINE_DIR)/source/gamelib/font.c \
+	$(ENGINE_DIR)/source/gamelib/translation.c \
+	$(ENGINE_DIR)/source/gamelib/anigif.c \
+	$(ENGINE_DIR)/source/gamelib/bitmap.c \
+	$(ENGINE_DIR)/source/gamelib/screen.c \
+	$(ENGINE_DIR)/source/gamelib/screen16.c \
+	$(ENGINE_DIR)/source/gamelib/screen32.c \
+	$(ENGINE_DIR)/source/gamelib/loadimg.c \
+	$(ENGINE_DIR)/source/gamelib/palette.c \
+	$(ENGINE_DIR)/source/gamelib/packfile.c \
+	$(ENGINE_DIR)/source/gamelib/filecache.c \
+	$(ENGINE_DIR)/source/gamelib/pixelformat.c \
+	$(ENGINE_DIR)/source/gamelib/soundmix.c \
+	$(ENGINE_DIR)/source/gamelib/spriteq.c \
+	$(ENGINE_DIR)/source/gamelib/sprite.c \
+	$(ENGINE_DIR)/source/gamelib/spritex8p16.c \
+	$(ENGINE_DIR)/source/gamelib/spritex8p32.c \
+	$(ENGINE_DIR)/source/gamelib/models.c \
+	$(ENGINE_DIR)/source/gamelib/transform.c \
+	$(ENGINE_DIR)/source/scriptlib/StackedSymbolTable.c \
+	$(ENGINE_DIR)/source/scriptlib/ScriptVariant.c \
+	$(ENGINE_DIR)/source/scriptlib/SymbolTable.c \
+	$(ENGINE_DIR)/source/scriptlib/Instruction.c \
+	$(ENGINE_DIR)/source/scriptlib/Interpreter.c \
+	$(ENGINE_DIR)/source/scriptlib/ImportCache.c \
+	$(ENGINE_DIR)/source/scriptlib/ParserSet.c \
+	$(ENGINE_DIR)/source/scriptlib/Parser.c \
+	$(ENGINE_DIR)/source/scriptlib/Lexer.c \
+	$(ENGINE_DIR)/source/scriptlib/Stack.c \
+	$(ENGINE_DIR)/source/scriptlib/List.c \
+	$(ENGINE_DIR)/source/preprocessorlib/pp_lexer.c \
+	$(ENGINE_DIR)/source/preprocessorlib/pp_parser.c \
+	$(ENGINE_DIR)/source/preprocessorlib/pp_expr.c \
+	$(ENGINE_DIR)/source/openborscript/commands.c \
+	$(ENGINE_DIR)/source/openborscript/animation.c \
+	$(ENGINE_DIR)/source/openborscript/axis.c \
+	$(ENGINE_DIR)/source/openborscript/binding.c \
+	$(ENGINE_DIR)/source/openborscript/collision_attack.c \
+	$(ENGINE_DIR)/source/openborscript/collision_body.c \
+	$(ENGINE_DIR)/source/openborscript/collision_entity.c \
+	$(ENGINE_DIR)/source/openborscript/constants.c \
+	$(ENGINE_DIR)/source/openborscript/energy_status.c \
+	$(ENGINE_DIR)/source/openborscript/entity.c \
+	$(ENGINE_DIR)/source/openborscript/index.c \
+	$(ENGINE_DIR)/source/openborscript/layer.c \
+	$(ENGINE_DIR)/source/openborscript/level.c \
+	$(ENGINE_DIR)/source/openborscript/math.c \
+	$(ENGINE_DIR)/source/openborscript/string.c \
+	$(ENGINE_DIR)/source/ramlib/ram.c \
+	$(ENGINE_DIR)/source/randlib/rand32.c \
+	$(ENGINE_DIR)/source/pnglib/pngdec.c \
+	$(ENGINE_DIR)/source/pnglib/savepng.c \
+	$(ENGINE_DIR)/source/stringptr.c \
+	$(ENGINE_DIR)/source/utils.c \
+	$(ENGINE_DIR)/source/stristr.c \
+	$(ENGINE_DIR)/source/omath.c
+
+# ---------------------------------------------------------------------------
+# libretro port
+# ---------------------------------------------------------------------------
+SOURCES_C += \
+	$(ENGINE_DIR)/libretro/libretroport.c \
+	$(ENGINE_DIR)/libretro/video.c \
+	$(ENGINE_DIR)/libretro/control.c \
+	$(ENGINE_DIR)/libretro/sblaster.c \
+	$(ENGINE_DIR)/libretro/timer.c \
+	$(DEPS_DIR)/libretro-common/libco/libco.c
+
+# ---------------------------------------------------------------------------
+# Bundled dependencies (disable individually with SYSTEM_ZLIB=1 etc.)
+# ---------------------------------------------------------------------------
+ifneq ($(SYSTEM_ZLIB), 1)
+INCFLAGS += -I$(DEPS_DIR)/zlib
+SOURCES_C += \
+	$(DEPS_DIR)/zlib/adler32.c \
+	$(DEPS_DIR)/zlib/compress.c \
+	$(DEPS_DIR)/zlib/crc32.c \
+	$(DEPS_DIR)/zlib/deflate.c \
+	$(DEPS_DIR)/zlib/infback.c \
+	$(DEPS_DIR)/zlib/inffast.c \
+	$(DEPS_DIR)/zlib/inflate.c \
+	$(DEPS_DIR)/zlib/inftrees.c \
+	$(DEPS_DIR)/zlib/trees.c \
+	$(DEPS_DIR)/zlib/uncompr.c \
+	$(DEPS_DIR)/zlib/zutil.c
+endif
+
+ifneq ($(SYSTEM_LIBPNG), 1)
+INCFLAGS += -I$(DEPS_DIR)/libpng
+SOURCES_C += \
+	$(DEPS_DIR)/libpng/png.c \
+	$(DEPS_DIR)/libpng/pngerror.c \
+	$(DEPS_DIR)/libpng/pngget.c \
+	$(DEPS_DIR)/libpng/pngmem.c \
+	$(DEPS_DIR)/libpng/pngpread.c \
+	$(DEPS_DIR)/libpng/pngread.c \
+	$(DEPS_DIR)/libpng/pngrio.c \
+	$(DEPS_DIR)/libpng/pngrtran.c \
+	$(DEPS_DIR)/libpng/pngrutil.c \
+	$(DEPS_DIR)/libpng/pngset.c \
+	$(DEPS_DIR)/libpng/pngtrans.c \
+	$(DEPS_DIR)/libpng/pngwio.c \
+	$(DEPS_DIR)/libpng/pngwrite.c \
+	$(DEPS_DIR)/libpng/pngwtran.c \
+	$(DEPS_DIR)/libpng/pngwutil.c
+endif
+
+ifneq ($(SYSTEM_VORBIS), 1)
+INCFLAGS += -I$(DEPS_DIR)/libogg/include -I$(DEPS_DIR)/libvorbis/include -I$(DEPS_DIR)/libvorbis/lib
+SOURCES_C += \
+	$(DEPS_DIR)/libogg/src/bitwise.c \
+	$(DEPS_DIR)/libogg/src/framing.c \
+	$(DEPS_DIR)/libvorbis/lib/analysis.c \
+	$(DEPS_DIR)/libvorbis/lib/bitrate.c \
+	$(DEPS_DIR)/libvorbis/lib/block.c \
+	$(DEPS_DIR)/libvorbis/lib/codebook.c \
+	$(DEPS_DIR)/libvorbis/lib/envelope.c \
+	$(DEPS_DIR)/libvorbis/lib/floor0.c \
+	$(DEPS_DIR)/libvorbis/lib/floor1.c \
+	$(DEPS_DIR)/libvorbis/lib/info.c \
+	$(DEPS_DIR)/libvorbis/lib/lookup.c \
+	$(DEPS_DIR)/libvorbis/lib/lpc.c \
+	$(DEPS_DIR)/libvorbis/lib/lsp.c \
+	$(DEPS_DIR)/libvorbis/lib/mapping0.c \
+	$(DEPS_DIR)/libvorbis/lib/mdct.c \
+	$(DEPS_DIR)/libvorbis/lib/psy.c \
+	$(DEPS_DIR)/libvorbis/lib/registry.c \
+	$(DEPS_DIR)/libvorbis/lib/res0.c \
+	$(DEPS_DIR)/libvorbis/lib/sharedbook.c \
+	$(DEPS_DIR)/libvorbis/lib/smallft.c \
+	$(DEPS_DIR)/libvorbis/lib/synthesis.c \
+	$(DEPS_DIR)/libvorbis/lib/vorbisfile.c \
+	$(DEPS_DIR)/libvorbis/lib/window.c
+endif

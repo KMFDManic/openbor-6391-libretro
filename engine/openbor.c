@@ -16807,7 +16807,13 @@ void update_loading(s_loadingbar *s,  int value, int max)
     int size_x = s->bsize;
     int text_x = s->text_position.x + videomodes.hShift;
     int text_y = s->text_position.y + videomodes.vShift;
+#ifdef LIBRETRO
+    // The libretro engine clock only advances when a frame is presented, so
+    // pace the loading screen with the wall clock instead.
+    unsigned int ticks = libretro_realtime_ms();
+#else
     unsigned int ticks = timer_gettick();
+#endif
 #ifdef PSP
     ticks /= 1000; //temp solution
 #endif
@@ -34049,7 +34055,7 @@ void update(int ingame, int usevwait)
  * error. */
 int set_color_correction(int gm, int br)
 {
-#if WII || SDL || VITA
+#if WII || SDL || VITA || LIBRETRO
     video_set_color_correction(gm, br);
     return 1;
 #else
@@ -34269,6 +34275,10 @@ void borShutdown(int status, char *msg, ...)
     vsprintf(buf, msg, arglist);
     va_end(arglist);
 
+#ifdef LIBRETRO
+    libretro_shutdown_message(status, buf);
+#endif
+
     if(!disablelog)
     {
         switch(status)
@@ -34294,7 +34304,13 @@ void borShutdown(int status, char *msg, ...)
 
     enginecreditsScreen = 1;		//entry point for the engine credits screen.
 
+#ifdef LIBRETRO
+    // Errors are reported to the frontend instead, and the credits screen
+    // cannot be shown while the frontend is unloading the game.
+    if(status == 0 && !libretro_unloading())
+#else
     if(status != 2)
+#endif
     {
         display_credits();
     }
@@ -36807,7 +36823,7 @@ void keyboard_setup(int player)
     size_t size;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
-    #if SDL || WII || DC
+    #if SDL || WII || DC || LIBRETRO
     int OPTIONS_NUM = btnnum + 3;
     #else
     int OPTIONS_NUM = btnnum + 2;
@@ -36886,7 +36902,7 @@ void keyboard_setup(int player)
                 voffset++;
             }
         }
-        #if SDL || WII || DC
+        #if SDL || WII || DC || LIBRETRO
         ++voffset;
         if(savedata.joyrumble[player])
         {
@@ -36961,7 +36977,7 @@ void keyboard_setup(int player)
                 while(disabledkey[selector]) if(++selector > btnnum - 1) break;
             }
 
-            #if SDL || WII || DC
+            #if SDL || WII || DC || LIBRETRO
             if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
             #else
             if(bothnewkeys & (FLAG_ANYBUTTON))
@@ -36970,7 +36986,7 @@ void keyboard_setup(int player)
             {
                 sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
 
-                #if SDL || WII || DC
+                #if SDL || WII || DC || LIBRETRO
                 if (selector != OPTIONS_NUM - 3 &&
                     bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) continue;
 
@@ -37869,7 +37885,7 @@ void menu_options_video()
         }
 #endif
 
-#if DC || GP2X || VITA
+#if DC || GP2X || VITA || LIBRETRO
         _menutextm((selector == 3), 6, 0, Tr("Back"));
         if(selector < 0)
         {

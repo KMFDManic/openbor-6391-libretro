@@ -1584,7 +1584,7 @@ int sound_start_playback(int bits, int frequency)
         return 0;
     }
 
-#if WIN || LINUX || DARWIN || SYMBIAN
+#if (WIN || LINUX || DARWIN || SYMBIAN) && !LIBRETRO
     //
 #else
     // Most consoles support natively 16/44100
