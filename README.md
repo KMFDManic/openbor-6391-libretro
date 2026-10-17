@@ -81,7 +81,7 @@ share the `8025` folder):
 Check `Logs/OpenBorLog.txt` first when a mod does not start; engine errors are
 also shown as an on-screen message.
 
-### Default controls (RetroPad, up to 4 players)
+### Controls (RetroPad, up to 4 players)
 
 | RetroPad | OpenBOR |
 |---|---|
@@ -94,11 +94,31 @@ also shown as an on-screen message.
 | Start | Start / pause |
 | Select (player 1) | Esc (back / exit menus) |
 | R3 | Screenshot |
-| Left stick | Move, when "GamePads/Analog" is enabled in Control Options |
+| Left stick | Move (core option `Analog stick movement`) |
 
-Buttons can also be remapped from the engine's own *Options → Control Options*
-menu (names are shown as `P1 X`, `P2 Start`, …), or from the frontend.
-Rumble is supported.
+Buttons are remapped the standard way, in the frontend (RetroArch: *Quick
+Menu → Controls*). The engine's own *Control Options* menu is hidden: every
+player always uses the layout above (bindings saved in a mod's settings by
+another OpenBOR build are replaced), so all four players work out of the box.
+Mods that show button prompts (e.g. SoRX) show the layout above, as the
+frontend does not tell the core about its remaps.
+
+### Core options
+
+| Option | Values | |
+|---|---|---|
+| Engine version | `auto`, `8025_webm` … `3711` | applies on the next load |
+| Analog stick movement | enabled / disabled | left stick moves like the D-Pad |
+| Rumble | enabled / disabled | build 6391 and newer |
+| Gamma | `0` (off), `32` … `192`, `-32` … `-192` | OpenBOR's gamma curve, applied to the core's output |
+
+The engine menus keep what only the game can do: volumes (master, effects,
+music), BGM, brightness, the HUD *Window Offset* and the system options.
+Entries that the frontend handles or that have no effect in the core are
+hidden: *Control Options*, *Gamma*, and the sample rate / bit depth menu of
+builds 3711–6391 (*Sound Options → Advanced Options*; the output is always
+44.1 kHz / 16-bit and the frontend resamples it). Window size, filters,
+scaling and frame rate limits are the frontend's.
 
 ### Streets of Rage X
 
@@ -207,7 +227,9 @@ them): log/save paths, the loading-screen refresh clock, forced 16-bit/44.1 kHz
 output where the engine still allowed other rates, the rumble entry in the
 control menu, the shutdown/error hooks, and — for build 3711 — larger save
 path buffers (builds 3711 and 4153; they were 128 bytes) and `exit()`
-replaced by the port's exit (3711). For WebM (8025_webm): a libretro branch in
+replaced by the port's exit (3711). Menu entries hidden in the core (see
+*Core options*) and `apply_controls()` forcing the RetroPad layout. For WebM
+(8025_webm): a libretro branch in
 `threads.h` and the `playwebm()` loops yielding to the frontend instead of
 sleeping.
 Two upstream memory bugs found with valgrind are fixed the same way: build
@@ -227,8 +249,6 @@ damage-over-time arrays.
   game is scaled down to 480×272). The VP8 decoder is portable C without
   SIMD: 1080p videos need a reasonably fast CPU, and when the frontend runs
   faster than real time (fast-forward) video frames are dropped.
-* Gamma correction from the video menu is ignored (brightness works), as in
-  the upstream software renderers.
 * Engine 3711 only accepts the numeric `video N` modes of its time.
 * When an engine fails while loading and the next one is tried, the failed
   engine cannot free what it had loaded (upstream only frees after a

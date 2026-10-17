@@ -118,6 +118,14 @@ static double audio_frac = 0.0;
 
 static char last_error[512];
 
+/* core options read while running (see update_options()) */
+static int opt_analog = 1;
+static int opt_rumble = 1;
+static int opt_gamma = 0;                  /* OpenBOR scale, -255..255, 0 = off */
+static uint8_t gamma_lut[256];
+static uint32_t *gamma_buffer = NULL;
+static size_t gamma_buffer_size = 0;
+
 /* ------------------------------------------------------------------------ */
 /* Helpers                                                                  */
 /* ------------------------------------------------------------------------ */
@@ -263,6 +271,7 @@ static void host_video_mode_changed(int width, int height)
 static void host_set_rumble(int port, uint16_t strength)
 {
     if (!have_rumble) return;
+    if (!opt_rumble) strength = 0;
     rumble.set_rumble_state(port, RETRO_RUMBLE_STRONG, strength);
     rumble.set_rumble_state(port, RETRO_RUMBLE_WEAK, strength);
 }
@@ -321,10 +330,93 @@ static int option_engine(void)
     return -1;
 }
 
+static const char *get_option(const char *key)
+{
+    struct retro_variable var;
+    var.key = key;
+    var.value = NULL;
+    if (environ_cb && environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+        return var.value;
+    return NULL;
+}
+
+/* OpenBOR's own gamma curve (palette.c), -255..255 */
+static void build_gamma_lut(int g)
+{
+    int v;
+    for (v = 0; v < 256; v++)
+    {
+        long r = g <= 0 ? ((long)v * (65025 + (255 - v) * g)) / 65025
+                        : 255 - (((long)(255 - v) * (65025 + v * -g)) / 65025);
+        gamma_lut[v] = (uint8_t)(r < 0 ? 0 : r > 255 ? 255 : r);
+    }
+}
+
+/* Options that apply immediately (the engine version applies on load). */
+static void update_options(void)
+{
+    const char *v;
+    int gamma;
+
+    v = get_option("openbor_analog");
+    opt_analog = !v || strcmp(v, "disabled") != 0;
+
+    v = get_option("openbor_rumble");
+    if (v)
+    {
+        int enabled = strcmp(v, "disabled") != 0;
+        if (opt_rumble && !enabled && have_rumble)
+        {
+            int port;
+            for (port = 0; port < 4; port++)
+            {
+                rumble.set_rumble_state(port, RETRO_RUMBLE_STRONG, 0);
+                rumble.set_rumble_state(port, RETRO_RUMBLE_WEAK, 0);
+            }
+        }
+        opt_rumble = enabled;
+    }
+
+    v = get_option("openbor_gamma");
+    gamma = v ? atoi(v) : 0;
+    if (gamma < -255) gamma = -255;
+    if (gamma > 255) gamma = 255;
+    if (gamma != opt_gamma)
+    {
+        opt_gamma = gamma;
+        build_gamma_lut(gamma);
+    }
+}
+
+/* Applies the gamma option to a frame; returns the buffer to present. */
+static const uint32_t *apply_gamma(const uint32_t *fb, int w, int h)
+{
+    size_t i, n = (size_t)w * h;
+
+    if (!opt_gamma || !fb || n == 0)
+        return fb;
+    if (n > gamma_buffer_size)
+    {
+        uint32_t *b = (uint32_t *)realloc(gamma_buffer, n * sizeof(uint32_t));
+        if (!b)
+            return fb;
+        gamma_buffer = b;
+        gamma_buffer_size = n;
+    }
+    for (i = 0; i < n; i++)
+    {
+        uint32_t p = fb[i];
+        gamma_buffer[i] = ((uint32_t)gamma_lut[(p >> 16) & 0xFF] << 16) |
+                          ((uint32_t)gamma_lut[(p >> 8) & 0xFF] << 8) |
+                          gamma_lut[p & 0xFF];
+    }
+    return gamma_buffer;
+}
+
 static void set_core_options(void)
 {
     static char engine_values[256];
-    static struct retro_variable vars[2];
+    static struct retro_variable vars[5];
     int i;
 
     strcpy(engine_values, "Engine version (applies on next load); auto");
@@ -336,8 +428,14 @@ static void set_core_options(void)
     }
     vars[0].key = "openbor_engine";
     vars[0].value = engine_values;
-    vars[1].key = NULL;
-    vars[1].value = NULL;
+    vars[1].key = "openbor_analog";
+    vars[1].value = "Analog stick movement (left stick moves like the D-Pad); enabled|disabled";
+    vars[2].key = "openbor_rumble";
+    vars[2].value = "Rumble; enabled|disabled";
+    vars[3].key = "openbor_gamma";
+    vars[3].value = "Gamma (OpenBOR scale, 0 = off); 0|32|64|96|128|160|192|-192|-160|-128|-96|-64|-32";
+    vars[4].key = NULL;
+    vars[4].value = NULL;
     environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, vars);
 }
 
@@ -392,6 +490,9 @@ RETRO_API void retro_deinit(void)
 {
     log_cb = NULL;
     perf_get_time_usec = NULL;
+    free(gamma_buffer);
+    gamma_buffer = NULL;
+    gamma_buffer_size = 0;
     have_rumble = 0;
 }
 
@@ -601,6 +702,7 @@ RETRO_API bool retro_load_game(const struct retro_game_info *game)
 
     compute_paths(game->path, root_dir, paks_dir);
     set_input_descriptors();
+    update_options();
     main_thread = co_active();
     unloading = 0;
     shutdown_requested = 0;
@@ -711,7 +813,7 @@ static void poll_input(void)
                 if (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, id))
                     buttons |= 1u << id;
 
-        if (engine->analog_enabled())
+        if (opt_analog)
         {
             const int threshold = 0x4000;
             int ax = input_state_cb(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
@@ -747,6 +849,12 @@ RETRO_API void retro_run(void)
     const uint32_t *fb = NULL;
     int fbw = 0, fbh = 0;
 
+    {
+        bool updated = false;
+        if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+            update_options();
+    }
+
     if (engine_state == ENGINE_RUNNING)
     {
         unsigned before = (unsigned)(virtual_usec / 1000);
@@ -772,7 +880,10 @@ RETRO_API void retro_run(void)
     }
 
     if (engine)
+    {
         fb = engine->framebuffer(&fbw, &fbh);
+        fb = apply_gamma(fb, fbw, fbh);
+    }
 
     if (frame_ready && fb)
         video_cb(fb, fbw, fbh, fbw * sizeof(uint32_t));

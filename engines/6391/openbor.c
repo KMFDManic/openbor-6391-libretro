@@ -34169,6 +34169,17 @@ void apply_controls()
 {
     int p;
 
+#ifdef LIBRETRO
+    /* libretro: buttons are remapped in the frontend, so every player
+     * always uses the RetroPad layout (bindings saved by an older
+     * configuration are replaced); rumble and gamma are core options. */
+    for(p = 0; p < 4; p++)
+    {
+        CONTROL_SET_DEFAULT_KEYS(savedata.keys[p], p);
+        savedata.joyrumble[p] = 1;
+    }
+    savedata.gamma = 0;
+#endif
     for(p = 0; p < MAX_PLAYERS; p++)
     {
         control_setkey(playercontrolpointers[p], FLAG_ESC,        CONTROL_ESC);
@@ -37222,7 +37233,9 @@ void menu_options_sound()
         _menutext((selector == 3), col2, 1, (savedata.usemusic ? Tr("Enabled") : Tr("Disabled")));
         _menutext((selector == 4), col1, 2, Tr("Show Titles:"));
         _menutext((selector == 4), col2, 2, (savedata.showtitles ? Tr("Yes") : Tr("No")));
+#ifndef LIBRETRO
         _menutext((selector == 5), col1, 3, Tr("Advanced Options..."));
+#endif
         _menutextm((selector == 6), 6, 0, Tr("Back"));
 
         update((level != NULL), 0);
@@ -37258,6 +37271,13 @@ void menu_options_sound()
             selector = 0;
         }
 
+#ifdef LIBRETRO
+        /* libretro: the output is always 44.1 kHz / 16-bit, the entry is hidden */
+        if(selector == 5)
+        {
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 4 : 6;
+        }
+#endif
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
             dir = 0;
@@ -37884,10 +37904,15 @@ void menu_options_video()
         _menutextm(2, -5, 0, Tr("Video Options"));
         _menutext((selector == 0), col1, -3, Tr("Brightness:"));
         _menutext((selector == 0), col2, -3, "%i", savedata.brightness);
+#ifndef LIBRETRO
         _menutext((selector == 1), col1, -2, Tr("Gamma:"));
         _menutext((selector == 1), col2, -2, "%i", savedata.gamma);
         _menutext((selector == 2), col1, -1, Tr("Window Offset:"));
         _menutext((selector == 2), col2, -1, "%i", savedata.windowpos);
+#else
+        _menutext((selector == 2), col1, -2, Tr("Window Offset:"));
+        _menutext((selector == 2), col2, -2, "%i", savedata.windowpos);
+#endif
 
 #if OPENDINGUX
         _menutext((selector == 3), col1, 0, Tr("Display Mode:"));
@@ -38038,6 +38063,13 @@ void menu_options_video()
                 sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
+#ifdef LIBRETRO
+        /* libretro: gamma is a core option, the entry is hidden */
+        if(selector == 1)
+        {
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 0 : 2;
+        }
+#endif
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
             dir = 0;
@@ -38288,7 +38320,9 @@ void menu_options()
     typedef enum {
         VIDEO_OPTION,
         SOUND_OPTION,
+#ifndef LIBRETRO /* buttons are configured in the frontend */
         CONTROL_OPTION,
+#endif
         SYSTEM_OPTION,
 
         LIVES_CHEAT,
@@ -38321,7 +38355,9 @@ void menu_options()
 
         _menutextm((selector == VIDEO_OPTION), y_offset+VIDEO_OPTION, 0, Tr("Video Options..."));
         _menutextm((selector == SOUND_OPTION), y_offset+SOUND_OPTION, 0, Tr("Sound Options..."));
+#ifndef LIBRETRO
         _menutextm((selector == CONTROL_OPTION), y_offset+CONTROL_OPTION, 0, Tr("Control Options..."));
+#endif
         _menutextm((selector == SYSTEM_OPTION), y_offset+SYSTEM_OPTION, 0, Tr("System Options..."));
 
         if (cheats && !forcecheatsoff)
@@ -38376,7 +38412,9 @@ void menu_options()
                 if(selector==BACK_OPTION) quit = 1;
            else if(selector==VIDEO_OPTION) menu_options_video();
            else if(selector==SOUND_OPTION) menu_options_sound();
+#ifndef LIBRETRO
            else if(selector==CONTROL_OPTION) menu_options_input();
+#endif
            else if(selector==SYSTEM_OPTION)
            {
                 menu_options_system();

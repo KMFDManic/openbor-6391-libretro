@@ -87,4 +87,21 @@ void control_rumble(int port, int ratio, int msec);
 void control_set_pad_state(int port, uint32_t buttons);
 void control_tick_rumble(unsigned elapsed_ms);
 
+/* Default RetroPad layout of one player, into a savedata.keys[] row
+ * (SDID_* come from the engine headers where this is expanded). */
+#define CONTROL_SET_DEFAULT_KEYS(k, port) do { \
+        (k)[SDID_MOVEUP]     = CONTROL_KEY(port, RP_UP);    \
+        (k)[SDID_MOVEDOWN]   = CONTROL_KEY(port, RP_DOWN);  \
+        (k)[SDID_MOVELEFT]   = CONTROL_KEY(port, RP_LEFT);  \
+        (k)[SDID_MOVERIGHT]  = CONTROL_KEY(port, RP_RIGHT); \
+        (k)[SDID_ATTACK]     = CONTROL_KEY(port, RP_Y);     \
+        (k)[SDID_ATTACK2]    = CONTROL_KEY(port, RP_X);     \
+        (k)[SDID_ATTACK3]    = CONTROL_KEY(port, RP_L);     \
+        (k)[SDID_ATTACK4]    = CONTROL_KEY(port, RP_R);     \
+        (k)[SDID_JUMP]       = CONTROL_KEY(port, RP_B);     \
+        (k)[SDID_SPECIAL]    = CONTROL_KEY(port, RP_A);     \
+        (k)[SDID_START]      = CONTROL_KEY(port, RP_START); \
+        (k)[SDID_SCREENSHOT] = CONTROL_KEY(port, RP_R3);    \
+    } while (0)
+
 #endif

@@ -28234,6 +28234,16 @@ void apply_controls()
 {
     int p;
 
+#ifdef LIBRETRO
+    /* libretro: buttons are remapped in the frontend, so every player
+     * always uses the RetroPad layout (bindings saved by an older
+     * configuration are replaced); rumble and gamma are core options. */
+    for(p = 0; p < 4; p++)
+    {
+        CONTROL_SET_DEFAULT_KEYS(savedata.keys[p], p);
+    }
+    savedata.gamma = 0;
+#endif
     for(p = 0; p < 4; p++)
     {
         control_setkey(playercontrolpointers[p], FLAG_ESC,        CONTROL_ESC);
@@ -31009,7 +31019,9 @@ void sound_options()
         _menutext((selector == 3), col2, 1, (savedata.usemusic ? Tr("Enabled") : Tr("Disabled")));
         _menutext((selector == 4), col1, 2, Tr("Show Titles:"));
         _menutext((selector == 4), col2, 2, (savedata.showtitles ? Tr("Yes") : Tr("No")));
+#ifndef LIBRETRO
         _menutext((selector == 5), col1, 3, Tr("Advanced Options..."));
+#endif
         _menutextm((selector == 6), 6, 0, Tr("Back"));
 
         update((level != NULL), 0);
@@ -31045,6 +31057,13 @@ void sound_options()
             selector = 0;
         }
 
+#ifdef LIBRETRO
+        /* libretro: the output is always 44.1 kHz / 16-bit, the entry is hidden */
+        if(selector == 5)
+        {
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 4 : 6;
+        }
+#endif
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
             dir = 0;
@@ -31274,9 +31293,11 @@ void cheatoptions()     //  LTB 1-13-05 took out sameplayer option
         _menutextm(2, -5, 0, Tr("Cheat Options"));
         _menutext((selector == 0), col1, -3, Tr("Brightness:"));
         _menutext((selector == 0), col2, -3, "%i", savedata.brightness);
+#ifndef LIBRETRO
         _menutext((selector == 1), col1, -2, Tr("Gamma:"));
         _menutext((selector == 1), col2, -2, "%i", savedata.gamma);
         _menutext((selector == 2), col1, -1, Tr("Control Options..."));
+#endif
         _menutext((selector == 3), col1, 0, Tr("Sound Options..."));
         _menutext((selector == 4), col1, 1, Tr("System Options..."));
 
@@ -31341,6 +31362,13 @@ void cheatoptions()     //  LTB 1-13-05 took out sameplayer option
             selector = 0;    //    7-1-2005 6 changed to 10 //13-1-2005 changed to 11
         }
 
+#ifdef LIBRETRO
+        /* libretro: gamma and buttons are configured in the frontend */
+        if(selector == 1 || selector == 2)
+        {
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 0 : 3;
+        }
+#endif
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
             dir = 0;
@@ -31671,10 +31699,15 @@ void video_options()
         _menutextm(2, -5, 0, Tr("Video Options"));
         _menutext((selector == 0), col1, -3, Tr("Brightness:"));
         _menutext((selector == 0), col2, -3, "%i", savedata.brightness);
+#ifndef LIBRETRO
         _menutext((selector == 1), col1, -2, Tr("Gamma:"));
         _menutext((selector == 1), col2, -2, "%i", savedata.gamma);
         _menutext((selector == 2), col1, -1, Tr("Window Offset:"));
         _menutext((selector == 2), col2, -1, "%i", savedata.windowpos);
+#else
+        _menutext((selector == 2), col1, -2, Tr("Window Offset:"));
+        _menutext((selector == 2), col2, -2, "%i", savedata.windowpos);
+#endif
 
 #if OPENDINGUX
         _menutext((selector == 3), col1, 0, Tr("Display Mode:"));
@@ -31814,6 +31847,13 @@ void video_options()
                 sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
+#ifdef LIBRETRO
+        /* libretro: gamma is a core option, the entry is hidden */
+        if(selector == 1)
+        {
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 0 : 2;
+        }
+#endif
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
             dir = 0;
@@ -32068,8 +32108,12 @@ void options()
         _menutextm(2, -1, 0, Tr("Options"));
         _menutextm((selector == 0), 1, 0, Tr("Video Options..."));
         _menutextm((selector == 1), 2, 0, Tr("Sound Options..."));
+#ifndef LIBRETRO
         _menutextm((selector == 2), 3, 0, Tr("Control Options..."));
         _menutextm((selector == 3), 4, 0, Tr("System Options..."));
+#else
+        _menutextm((selector == 3), 3, 0, Tr("System Options..."));
+#endif
         _menutextm((selector == 4), 6, 0, Tr("Back"));
 
         if(selector < 0)
@@ -32105,6 +32149,13 @@ void options()
                 sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
+#ifdef LIBRETRO
+        /* libretro: buttons are configured in the frontend, the entry is hidden */
+        if(selector == 2)
+        {
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 1 : 3;
+        }
+#endif
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
 
