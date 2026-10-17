@@ -1567,7 +1567,7 @@ int sound_start_playback(int bits, int frequency)
         return 0;
     }
 
-#if WIN || LINUX || DARWIN || SYMBIAN
+#if (WIN || LINUX || DARWIN || SYMBIAN) && !LIBRETRO
     playbits = bits;
     playfrequency = frequency;
 #else
