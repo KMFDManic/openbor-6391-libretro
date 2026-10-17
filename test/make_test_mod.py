@@ -79,13 +79,20 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--width", type=int, default=480)
     ap.add_argument("--height", type=int, default=272)
+    ap.add_argument("--video-mode", type=int, default=None,
+                    help="write 'video N' (classic mode number, e.g. 0 = 320x240) "
+                         "instead of 'video WxH', for 3.x engines")
     a = ap.parse_args()
     d = os.path.join(a.out, "data")
     os.makedirs(os.path.join(d, "sprites"), exist_ok=True)
     os.makedirs(os.path.join(d, "bgs"), exist_ok=True)
     os.makedirs(os.path.join(d, "music"), exist_ok=True)
 
-    write(os.path.join(d, "video.txt"), "video %dx%d\n" % (a.width, a.height))
+    if a.video_mode is not None:
+        a.width, a.height = {0: (320, 240), 1: (480, 272), 2: (640, 480)}[a.video_mode]
+        write(os.path.join(d, "video.txt"), "video %d\n" % a.video_mode)
+    else:
+        write(os.path.join(d, "video.txt"), "video %dx%d\n" % (a.width, a.height))
     write(os.path.join(d, "models.txt"), "# no models in the smoke-test mod\n")
     write(os.path.join(d, "levels.txt"), "set Test\nz 160 232\n")
 

@@ -49,6 +49,10 @@
 #include "xboxport.h"
 #endif
 
+#ifdef LIBRETRO
+#include "libretroport.h"
+#endif
+
 #ifdef WII
 #include <gctypes.h>
 #include <ogc/conf.h>
@@ -58,6 +62,16 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #define printf writeToLogFile
+
+// Path buffers that hold absolute save paths. The libretro save directory
+// can be long, so they are enlarged there.
+#ifdef LIBRETRO
+#define OB_PATHBUF128 1024
+#define OB_PATHBUF256 1024
+#else
+#define OB_PATHBUF128 128
+#define OB_PATHBUF256 256
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 

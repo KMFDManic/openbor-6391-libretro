@@ -59,6 +59,11 @@
 #include "savepng.h"
 #endif
 
+#ifdef LIBRETRO
+#include "libretroport.h"
+#include "savepng.h"
+#endif
+
 #if PSP || GP2X || LINUX || DINGOO || WII || SYMBIAN
 #define MKDIR(x) mkdir(x, 0777)
 #else
@@ -72,6 +77,13 @@
 #define READ_LOGFILE(type)   type ? fopen("d:\\Logs\\OpenBorLog.txt", "rt") : fopen("d:\\Logs\\ScriptLog.txt", "rt")
 #define COPY_ROOT_PATH(buf, name) strncpy(buf, "d:\\", 3); strncat(buf, name, strlen(name)); strncat(buf, "\\", 1)
 #define COPY_PAKS_PATH(buf, name) strncpy(buf, "d:\\Paks\\", 8); strncat(buf, name, strlen(name))
+#elif LIBRETRO
+#define CHECK_LOGFILE(type)  type ? fileExists(libretro_root_path("Logs/OpenBorLog.txt")) : fileExists(libretro_root_path("Logs/ScriptLog.txt"))
+#define OPEN_LOGFILE(type)   type ? fopen(libretro_root_path("Logs/OpenBorLog.txt"), "wt") : fopen(libretro_root_path("Logs/ScriptLog.txt"), "wt")
+#define APPEND_LOGFILE(type) type ? fopen(libretro_root_path("Logs/OpenBorLog.txt"), "at") : fopen(libretro_root_path("Logs/ScriptLog.txt"), "at")
+#define READ_LOGFILE(type)   type ? fopen(libretro_root_path("Logs/OpenBorLog.txt"), "rt") : fopen(libretro_root_path("Logs/ScriptLog.txt"), "rt")
+#define COPY_ROOT_PATH(buf, name) strcpy(buf, rootDir); strcat(buf, name); strcat(buf, "/");
+#define COPY_PAKS_PATH(buf, name) strcpy(buf, paksDir); strcat(buf, "/"); strcat(buf, name);
 #elif WII && !SDL
 #define CHECK_LOGFILE(type)  type ? fileExists(getFullPath("Logs/OpenBorLog.txt")) : fileExists(getFullPath("Logs/ScriptLog.txt"))
 #define OPEN_LOGFILE(type)   type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "wt") : fopen(getFullPath("Logs/ScriptLog.txt"), "wt")
@@ -131,7 +143,7 @@ u32 debug_time = 0;
 void getBasePath(char *newName, char *name, int type)
 {
 #ifndef DC
-	char buf[128] = {""};
+	char buf[OB_PATHBUF128] = {""};
 	switch(type)
 	{
 		case 0:
@@ -152,14 +164,14 @@ void getBasePath(char *newName, char *name, int type)
 #ifndef DC
 int dirExists(char *dname, int create)
 {
-	char realName[128] = {""};
+	char realName[OB_PATHBUF128] = {""};
 #ifdef XBOX
 	getBasePath(realName, dname, 0);
 	return CreateDirectory(realName, NULL);
 #else
 	DIR	*fd1 = NULL;
 	int  fd2 = -1;
-	strncpy(realName, dname, 128);
+	strncpy(realName, dname, sizeof(realName) - 1);
 	fd1 = opendir(realName);
 	if(fd1 != NULL)
 	{
@@ -305,7 +317,7 @@ void getPakName(char* name, int type){
 void screenshot(s_screen *vscreen, unsigned char *pal, int ingame){
 #ifndef DC
 	int	 shotnum = 0;
-	char shotname[128] = {""};
+	char shotname[OB_PATHBUF128] = {""};
 	char modname[128]  = {""};
 
 	getPakName(modname,99);
@@ -321,7 +333,7 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame){
 			sprintf(shotname, "d:\\ScreenShots\\%s - %04u.png", modname,shotnum);
 #elif WII && SDL
 			sprintf(shotname, "sd:/apps/OpenBOR/ScreenShots/%s - %04u.png", modname,shotnum);
-#elif WII
+#elif WII || LIBRETRO
 			sprintf(shotname, "%s/%s - %04u.png", screenShotsDir,modname,shotnum);
 #else
 			sprintf(shotname, "./ScreenShots/%s - %04u.png", modname,shotnum);

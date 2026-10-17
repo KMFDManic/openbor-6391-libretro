@@ -2272,8 +2272,8 @@ void clearsettings()
 void savesettings(){
 #ifndef DC
 	FILE *handle = NULL;
-	char path[128] = {""};
-	char tmpname[128] = {""};
+	char path[OB_PATHBUF128] = {""};
+	char tmpname[OB_PATHBUF128] = {""};
 	getBasePath(path, "Saves", 0);
 	getPakName(tmpname, 4);
 	strcat(path, tmpname);
@@ -2287,7 +2287,7 @@ void savesettings(){
 void saveasdefault(){
 #ifndef DC
 	FILE *handle = NULL;
-	char path[128] = {""};
+	char path[OB_PATHBUF128] = {""};
 	getBasePath(path, "Saves", 0);
 	strncat(path, "default.cfg", 128);
 	handle = fopen(path, "wb");
@@ -2301,8 +2301,8 @@ void saveasdefault(){
 void loadsettings(){
 #ifndef DC
 	FILE *handle = NULL;
-	char path[128] = {""};
-	char tmpname[128] = {""};
+	char path[OB_PATHBUF128] = {""};
+	char tmpname[OB_PATHBUF128] = {""};
 	getBasePath(path, "Saves", 0);
 	getPakName(tmpname, 4);
 	strcat(path, tmpname);
@@ -2325,7 +2325,7 @@ void loadsettings(){
 void loadfromdefault(){
 #ifndef DC
 	FILE *handle = NULL;
-	char path[128] = {""};
+	char path[OB_PATHBUF128] = {""};
 	getBasePath(path, "Saves", 0);
 	strncat(path, "default.cfg", 128);
 	clearsettings();
@@ -2362,8 +2362,8 @@ void clearHighScore(){
 int saveGameFile(){
 #ifndef DC
 	FILE *handle = NULL;
-	char path[256] = {""};
-	char tmpname[256] = {""};
+	char path[OB_PATHBUF256] = {""};
+	char tmpname[OB_PATHBUF256] = {""};
 	getBasePath(path, "Saves", 0);
 	getPakName(tmpname, 0);
 	strcat(path, tmpname);
@@ -2383,8 +2383,8 @@ int loadGameFile(){
 #ifndef DC
 	int result = 1;
 	FILE *handle = NULL;
-	char path[256] = {""};
-	char tmpname[256] = {""};
+	char path[OB_PATHBUF256] = {""};
+	char tmpname[OB_PATHBUF256] = {""};
 	getBasePath(path, "Saves", 0);
 	getPakName(tmpname, 0);
 	strcat(path,tmpname);
@@ -2406,8 +2406,8 @@ int loadGameFile(){
 int saveHighScoreFile(){
 #ifndef DC
 	FILE *handle = NULL;
-	char path[256] = {""};
-	char tmpname[256] = {""};
+	char path[OB_PATHBUF256] = {""};
+	char tmpname[OB_PATHBUF256] = {""};
 	getBasePath(path, "Saves", 0);
 	getPakName(tmpname, 1);
 	strcat(path, tmpname);
@@ -2425,8 +2425,8 @@ int saveHighScoreFile(){
 int loadHighScoreFile(){
 #ifndef DC
 	FILE *handle = NULL;
-	char path[256] = {""};
-	char tmpname[256] = {""};
+	char path[OB_PATHBUF256] = {""};
+	char tmpname[OB_PATHBUF256] = {""};
 	getBasePath(path, "Saves", 0);
 	getPakName(tmpname, 1);
 	strcat(path,tmpname);
@@ -2498,7 +2498,7 @@ int saveScriptFile()
 	#define _writeconst(s) strcpy(tmpvalue,s);_writetmp
 	FILE *handle = NULL;
 	int i, l;
-	char path[256] = {""};
+	char path[OB_PATHBUF256] = {""};
 	char tmpvalue[256] = {""};
 	//named list
 	//if(max_global_vars<=0) return ;
@@ -2561,8 +2561,8 @@ int loadScriptFile(){
 	size_t len;
 	FILE *handle = NULL;
 
-	char path[256] = {""};
-	char tmpname[256] = {""};
+	char path[OB_PATHBUF256] = {""};
+	char tmpname[OB_PATHBUF256] = {""};
 	//named list
 	//if(max_global_vars<=0) return ;
 	getBasePath(path, "Saves", 0);
@@ -10389,7 +10389,13 @@ void update_loading(s_loadingbar* s,  int value, int max) {
 	int size_x = s->bsize;
 	int text_x = s->tx + videomodes.hShift;
 	int text_y = s->ty + videomodes.vShift;
+#ifdef LIBRETRO
+	// The libretro engine clock only advances when a frame is presented, so
+	// pace the loading screen with the wall clock instead.
+	unsigned int ticks = libretro_realtime_ms();
+#else
 	unsigned int ticks = timer_gettick();
+#endif
 
 	if(ticks - soundtick > 20) {
 		sound_update_music();
@@ -20390,8 +20396,8 @@ void draw_scrolled_bg(){
 #ifndef DISABLE_MOVIE
 void movie_openfile(int save)
 {
-	char path[256] = {""};
-	char tmpname[256] = {""};
+	char path[OB_PATHBUF256] = {""};
+	char tmpname[OB_PATHBUF256] = {""};
 	moviebuffer = malloc(sizeof(*moviebuffer)*MOVIEBUF_LEN);
 	if(!moviebuffer) return ;
 	memset(moviebuffer, 0, sizeof(*moviebuffer)*MOVIEBUF_LEN);
@@ -21015,6 +21021,10 @@ void shutdown(int status, char *msg, ...)
 	vsprintf(buf, msg, arglist);
 	va_end(arglist);
 
+#ifdef LIBRETRO
+	libretro_shutdown_message(status, buf);
+#endif
+
 	if(!disablelog)
 	{
 		switch(status)
@@ -21035,7 +21045,13 @@ void shutdown(int status, char *msg, ...)
 	getRamStatus(BYTES);
 	savesettings();
 
+#ifdef LIBRETRO
+	// Errors are reported to the frontend instead, and the credits screen
+	// cannot be shown while the frontend is unloading the game.
+	if(status == 0 && !libretro_unloading()) display_credits();
+#else
 	if(status != 2) display_credits();
+#endif
 	if(startup_done) term_videomodes();
 
 	if(!disablelog) printf("Release level data");
@@ -21107,7 +21123,11 @@ void shutdown(int status, char *msg, ...)
 	#endif
 
 	shuttingdown = 0;
+#ifdef LIBRETRO
+	borExit(status);
+#else
 	exit(status);
+#endif
 }
 
 
@@ -23014,7 +23034,7 @@ void keyboard_setup(int player){
 					setting = selector;
 					ok = savedata.keys[player][setting];
 					savedata.keys[player][setting] = 0;
-#if DOS || SDL || PSP || WII
+#if DOS || SDL || PSP || WII || LIBRETRO
 					keyboard_getlastkey();
 #endif
 				}
@@ -23609,7 +23629,7 @@ void video_options(){
 		_menutext((selector==2), col1, -1, "Window Offset:");
 		_menutext((selector==2), col2, -1, "%i", savedata.windowpos);
 
-#if DOS || DC || GP2X || DINGOO
+#if DOS || DC || GP2X || DINGOO || LIBRETRO
 		_menutextm((selector==3), 6, 0, "Back");
 		if(selector<0) selector = 3;
 		if(selector>3) selector = 0;

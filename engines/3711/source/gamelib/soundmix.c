@@ -1242,7 +1242,7 @@ int sound_start_playback(int bits, int frequency){
 	if(bits!=8 && bits!=16) return 0;
 	if(frequency!=11025 && frequency!=22050 && frequency!=44100) return 0;
 
-#if WIN || LINUX || DARWIN || SYMBIAN
+#if (WIN || LINUX || DARWIN || SYMBIAN) && !LIBRETRO
 	playbits = bits;
 	playfrequency = frequency;
 #elif WII

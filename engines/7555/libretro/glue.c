@@ -16,6 +16,7 @@
 #include <stdarg.h>
 
 #include "libretroport.h"
+#include "openbor.h"     /* same macros as the engine (e.g. shutdown -> borShutdown in 3711) */
 #include "packfile.h"
 #include "video.h"
 #include "control.h"

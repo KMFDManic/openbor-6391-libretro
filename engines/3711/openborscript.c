@@ -7451,8 +7451,8 @@ HRESULT openbor_openfilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	int fsindex;
 
 	FILE *handle = NULL;
-	char path[256] = {""};
-	char tmpname[256] = {""};
+	char path[OB_PATHBUF256] = {""};
+	char tmpname[OB_PATHBUF256] = {""};
 	long size;
 
 	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -7810,8 +7810,8 @@ HRESULT openbor_savefilestream(ScriptVariant** varlist , ScriptVariant** pretvar
 	LONG filestreamindex;
 	ScriptVariant* arg = NULL;
 	FILE *handle = NULL;
-	char path[256] = {""};
-	char tmpname[256] = {""};
+	char path[OB_PATHBUF256] = {""};
+	char tmpname[OB_PATHBUF256] = {""};
 
 	*pretvar = NULL;
 
