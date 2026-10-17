@@ -1,11 +1,11 @@
 # Software Information
-display_name = "OpenBOR (v6391)"
+display_name = "OpenBOR (multi-engine)"
 authors = "OpenBOR Team"
 supported_extensions = "pak"
-corename = "OpenBOR v6391"
+corename = "OpenBOR"
 license = "BSD"
 permissions = ""
-display_version = "v3.0 Build 6391"
+display_version = "3711 / 6391 / 7555"
 categories = "Game engine"
 
 # Hardware Information
@@ -21,11 +21,11 @@ cheats = "false"
 input_descriptors = "true"
 memory_descriptors = "false"
 libretro_saves = "false"
-core_options = "false"
+core_options = "true"
 load_subsystem = "false"
 hw_render = "false"
 needs_fullpath = "true"
 disk_control = "false"
 is_experimental = "true"
 
-description = "Libretro port of the OpenBOR beat 'em up engine, based on the official v6391 (v3.0 Build 6391) source. Load a mod .pak file as content. Settings, high scores and saved games go to <save directory>/OpenBOR/."
+description = "Libretro port of the OpenBOR beat 'em up engine containing three official releases (v3.0 Build 3711, v3.0 Build 6391, v4.0 Build 7555). The engine is chosen per game from the contents of the .pak (or forced with the Engine version core option); if it cannot load the game the next one is tried. Load a mod .pak file as content. Settings, high scores and saved games go to <save directory>/OpenBOR/<engine>/."

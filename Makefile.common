@@ -3,7 +3,7 @@
 DEPS_DIR := $(CORE_DIR)/deps
 
 # Engine versions linked into the core (override: make ENGINES="6391 7555")
-ENGINES ?= 6391 7555
+ENGINES ?= 3711 6391 7555
 
 INCFLAGS := \
 	-I$(CORE_DIR)/common \

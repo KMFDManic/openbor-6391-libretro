@@ -472,6 +472,7 @@ static int engine_index(int id)
  * Returns 1 on success, 0 if the engine stopped (error message in last_error). */
 static int start_engine(int idx, const char *pak, const char *root_dir, const char *paks_dir)
 {
+    static char engine_root[PATH_LEN];
     unsigned t0;
 
     engine = engines[idx].get();
@@ -482,7 +483,13 @@ static int start_engine(int idx, const char *pak, const char *root_dir, const ch
     }
     engine_used[idx] = 1;
     engine->set_host(&host);
-    if (!engine->set_paths(pak, root_dir, paks_dir))
+
+    /* Each engine version gets its own data directory: the settings, high
+     * score and save game files are raw structures whose layout differs
+     * between versions. */
+    snprintf(engine_root, sizeof(engine_root), "%s%s/", root_dir, engine->id);
+    make_dir(engine_root);
+    if (!engine->set_paths(pak, engine_root, paks_dir))
     {
         snprintf(last_error, sizeof(last_error), "Path too long for the OpenBOR engine: %s", pak);
         return 0;
