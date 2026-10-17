@@ -7818,10 +7818,28 @@ toss_error:
 // ===== getplayerproperty =====
 enum playerproperty_enum
 {
+#ifdef LIBRETRO
+    /* Streets of Rage X engine extensions (input device / button names) */
+    _pp_button_attack1,
+    _pp_button_attack2,
+    _pp_button_attack3,
+    _pp_button_attack4,
+    _pp_button_jump,
+    _pp_button_movedown,
+    _pp_button_moveleft,
+    _pp_button_moveright,
+    _pp_button_moveup,
+    _pp_button_screenshot,
+    _pp_button_special,
+    _pp_button_start,
+#endif
     _pp_colourmap,
     _pp_combokey,
     _pp_combostep,
     _pp_credits,
+#ifdef LIBRETRO
+    _pp_device_name,
+#endif
     _pp_disablekeys,
     _pp_ent,
     _pp_entity,
@@ -7853,10 +7871,27 @@ int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
 
     static const char *proplist[] =
     {
+#ifdef LIBRETRO
+        "button_attack1",
+        "button_attack2",
+        "button_attack3",
+        "button_attack4",
+        "button_jump",
+        "button_movedown",
+        "button_moveleft",
+        "button_moveright",
+        "button_moveup",
+        "button_screenshot",
+        "button_special",
+        "button_start",
+#endif
         "colourmap",
         "combokey",
         "combostep",
         "credits",
+#ifdef LIBRETRO
+        "device_name",
+#endif
         "disablekeys",
         "ent",
         "entity",
@@ -7937,6 +7972,60 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
 
     switch(prop)
     {
+#ifdef LIBRETRO
+    case _pp_device_name:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_device_name(index));
+        break;
+    case _pp_button_attack1:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_ATTACK]));
+        break;
+    case _pp_button_attack2:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_ATTACK2]));
+        break;
+    case _pp_button_attack3:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_ATTACK3]));
+        break;
+    case _pp_button_attack4:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_ATTACK4]));
+        break;
+    case _pp_button_jump:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_JUMP]));
+        break;
+    case _pp_button_movedown:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_MOVEDOWN]));
+        break;
+    case _pp_button_moveleft:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_MOVELEFT]));
+        break;
+    case _pp_button_moveright:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_MOVERIGHT]));
+        break;
+    case _pp_button_moveup:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_MOVEUP]));
+        break;
+    case _pp_button_screenshot:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_SCREENSHOT]));
+        break;
+    case _pp_button_special:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_SPECIAL]));
+        break;
+    case _pp_button_start:
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(libretro_key_label(savedata.keys[index][SDID_START]));
+        break;
+#endif
     case _pp_ent:
     case _pp_entity:
     {

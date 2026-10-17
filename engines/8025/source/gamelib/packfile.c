@@ -841,6 +841,17 @@ static int openPackfileLoose(const char *filename) {
 
     real_handle = open(disk_filename, O_RDONLY | O_BINARY, file_permission);
 
+#ifdef LIBRETRO
+    /* Loose files are relative to the game's folder (where the original
+     * executable runs), not to the frontend's working directory. */
+    if(real_handle == -1 && (disk_filename = libretro_resolve_game_path(disk_filename)) != NULL)  {
+        real_handle = open(disk_filename, O_RDONLY | O_BINARY, file_permission);
+    }
+    if(!disk_filename)  {
+        return -1;
+    }
+#endif
+
 #ifdef LINUX
     if(real_handle == -1)  {
         case_corrected_path = casesearch(".", disk_filename);

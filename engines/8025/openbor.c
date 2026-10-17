@@ -26955,7 +26955,13 @@ void update_loading(s_loadingbar *s,  int value, int max)
     int size_x = s->bsize;
     int text_x = s->text_position.x + videomodes.hShift;
     int text_y = s->text_position.y + videomodes.vShift;
+#ifdef LIBRETRO
+    // The libretro engine clock only advances when a frame is presented, so
+    // pace the loading screen with the wall clock instead.
+    uint64_t ticks = libretro_realtime_ms();
+#else
     uint64_t ticks = timer_gettick();
+#endif
 
     if(ticks - soundtick > 20)
     {
@@ -51942,6 +51948,17 @@ void borShutdown(int status, const char *msg, ...)
     shuttingdown = 1;
     va_start(arglist, msg);
 
+#ifdef LIBRETRO
+    {
+        char libretro_msg[1024];
+        va_list libretro_args;
+        va_copy(libretro_args, arglist);
+        vsnprintf(libretro_msg, sizeof(libretro_msg), msg, libretro_args);
+        va_end(libretro_args);
+        libretro_shutdown_message(status, libretro_msg);
+    }
+#endif
+
     //printf("savedata.logo %d\n", savedata.logo);
 
     if(!disablelog)
@@ -56183,6 +56200,18 @@ void menu_options_video()
             selector = 10;
         }
         if(selector > 10)
+        {
+            selector = 0;
+        }
+#endif
+
+#ifdef LIBRETRO
+        _menutextm((selector == 3), 6, 0, Tr("Back"));
+        if(selector < 0)
+        {
+            selector = 3;
+        }
+        if(selector > 3)
         {
             selector = 0;
         }
