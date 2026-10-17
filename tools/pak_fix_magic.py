@@ -10,6 +10,10 @@ OpenBOR pak with plain-text contents.
     pak_fix_magic.py SORX.pak                 # writes SORX.pak.fixed
     pak_fix_magic.py SORX.pak -o out/SORX.pak
     pak_fix_magic.py SORX.pak --in-place
+    pak_fix_magic.py SORX.pak --tag 8025_webm  # writes "SORX [ob8025_webm].pak"
+
+--tag names the output with the libretro core's engine tag, so the core
+always starts the pak with that engine.
 """
 import argparse
 import os
@@ -63,6 +67,7 @@ def main():
     ap.add_argument("pak")
     ap.add_argument("-o", "--output")
     ap.add_argument("--in-place", action="store_true")
+    ap.add_argument("--tag", metavar="ENGINE", help="output named '<name> [ob<ENGINE>].pak'")
     a = ap.parse_args()
 
     size = os.path.getsize(a.pak)
@@ -79,7 +84,11 @@ def main():
         sys.exit("%d files do not look like plain data (e.g. %s): the contents are "
                  "encoded too, not only the header" % (len(bad), bad[0]))
 
-    out = a.pak if a.in_place else (a.output or a.pak + ".fixed")
+    if a.tag:
+        stem, ext = os.path.splitext(a.output or a.pak)
+        out = "%s [ob%s]%s" % (stem, a.tag, ext or ".pak")
+    else:
+        out = a.pak if a.in_place else (a.output or a.pak + ".fixed")
     if out != a.pak:
         shutil.copyfile(a.pak, out)
     with open(out, "r+b") as f:

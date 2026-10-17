@@ -8,6 +8,7 @@ typedef struct
 {
     int version;        /* chosen engine id, -1 if unknown */
     char reason[256];   /* human readable explanation (for the log) */
+    int webm_files;     /* number of .webm videos in the pak */
 } ob_detect_result;
 
 /* Inspects the .pak and picks the most suitable engine among `ids`

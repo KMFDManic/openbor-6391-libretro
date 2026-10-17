@@ -103,3 +103,17 @@ ENGINE_8025_SOURCES := \
 	$(E8025)/libretro/control.c \
 	$(E8025)/libretro/sblaster.c \
 	$(E8025)/libretro/timer.c
+
+# 8025_webm: the same engine with WebM video playback (webmlib + libvpx from
+# deps/, decoded in threads), as upstream's WebM-enabled builds
+ENGINE_8025_webm_NAME    := v4.0 Build 8025 + WebM
+ENGINE_8025_webm_FLAGS   := $(ENGINE_8025_FLAGS) -DWEBM
+ENGINE_8025_webm_SOURCES := $(ENGINE_8025_SOURCES) \
+	$(E8025)/source/webmlib/halloc/halloc.c \
+	$(E8025)/source/webmlib/nestegg/nestegg.c \
+	$(E8025)/source/webmlib/movie_playback.c \
+	$(E8025)/source/webmlib/samplecvt.c \
+	$(E8025)/source/webmlib/vidplay.c \
+	$(E8025)/source/webmlib/vorbis.c \
+	$(E8025)/source/webmlib/yuv.c \
+	$(E8025)/libretro/threads.c

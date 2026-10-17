@@ -10,7 +10,13 @@ right one for each game:
 | **v3.0 Build 4153** (2015) | [DCurrent/openbor@4a276c8b](https://github.com/DCurrent/openbor/commit/4a276c8b81fe0fc96d0f98b0e535da802c7417f7) | 2014–2016 mods, e.g. *Super Final Fight Gold Plus* |
 | **v3.0 Build 6391** (2018) | [DCurrent/openbor tag v6391](https://github.com/DCurrent/openbor/tree/v6391) | the long-lived "stable" most mods were built with |
 | **v4.0 Build 7555** (2024) | [DCurrent/openbor@b1676f97](https://github.com/DCurrent/openbor/commit/b1676f97) | recent mods, e.g. *Mighty Final Fight Forever* |
-| **v4.0 Build 8025** (2026) | [DCurrent/openbor@787b6770](https://github.com/DCurrent/openbor/commit/787b6770409935137579715febf80cf7a529b748) | latest upstream; *Streets of Rage X* (see below) |
+| **v4.0 Build 8025** (2026) | [DCurrent/openbor@787b6770](https://github.com/DCurrent/openbor/commit/787b6770409935137579715febf80cf7a529b748) | latest upstream |
+| **v4.0 Build 8025 + WebM** (`8025_webm`) | the same | mods with `.webm` videos (intros, logos, animated menus), e.g. *Streets of Rage X* (see below) |
+
+`8025_webm` is build 8025 compiled with WebM video playback (VP8 video +
+Vorbis audio, as upstream's WebM-enabled builds). It decodes videos in
+background threads; it is picked automatically for build 8025 mods whose pak
+contains `.webm` files, while the plain `8025` engine stays single-threaded.
 
 OpenBOR versions are not fully compatible with each other: newer mods use
 commands, script functions and constants that older engines reject, and older
@@ -23,10 +29,22 @@ Load a mod's `.pak` file as content.
 
 ### How the engine is chosen
 
-1. **Core option** `Engine version` (`auto`, `8025`, `7555`, `6391`, `4153`, `3711`). It can be
-   saved per game with RetroArch's per-game core options. A forced version
-   is used as is.
-2. **Auto-detection** (default). The `.pak` is scanned before starting: the
+1. **Core option** `Engine version` (`auto`, `8025_webm`, `8025`, `7555`,
+   `6391`, `4153`, `3711`). It can be saved per game with RetroArch's
+   per-game core options. A forced version is used as is.
+2. **Engine tag in the file name**, when the option is `auto`: a pak whose
+   name ends with `[ob<engine>]` before `.pak` is started with that engine,
+   used as is. The tag is case-insensitive and may be preceded by spaces:
+
+   ```
+   SORX [ob8025_webm].pak
+   MFF4ever [ob7555].pak
+   SFFG[ob4153].pak
+   ```
+
+   A tagged pak is still found under its original name (`Paks/SORX.pak`)
+   by mods that open their own pak to check it.
+3. **Auto-detection** (default). The `.pak` is scanned before starting: the
    commands of `models.txt`, `levels.txt` and of every model and level file
    they reference, plus the scripts' builtin functions, `openborconstant()`
    names and the names passed to property/variant functions
@@ -35,8 +53,9 @@ Load a mod's `.pak` file as content.
    engine's vocabulary is extracted from its own sources
    (`tools/gen_detect_tables.py` → `common/detect_tables.h`). The engine
    with the fewest unknown items wins; on a tie the **oldest** one is chosen,
-   as it is the closest to what the mod was written for.
-3. **Fallback.** The chosen engine loads the whole game (models, levels,
+   as it is the closest to what the mod was written for. Build 8025 is
+   started as `8025_webm` when the pak contains `.webm` files.
+4. **Fallback.** The chosen engine loads the whole game (models, levels,
    scripts) inside `retro_load_game()`. If it stops with an error — an
    unknown command, an invalid setting — the next engine is tried (newer
    ones first, then older ones), and an on-screen message says which engine
@@ -50,7 +69,8 @@ The frontend log shows the decision, e.g.
 Each engine keeps its writable data under the frontend's **save directory**
 (falling back to the system directory, then to the content directory), in a
 folder per engine version because settings, high scores and saved games are
-raw structures whose layout changes between versions:
+raw structures whose layout changes between versions (`8025` and `8025_webm`
+share the `8025` folder):
 
 ```
 <save dir>/OpenBOR/<engine>/Saves/        settings (<mod>.cfg), high scores, saved games
@@ -92,7 +112,12 @@ contents themselves are plain. To play it with this core:
 2. Keep the game's layout and load `Paks/SORX.pak` — the name matters: a
    startup script reads `Paks/SORX.pak` from the game folder to check it.
 
-It runs on the build 8025 engine, which in this core also provides the two
+The logos, the intro and the animated title screen are WebM videos, so the
+game runs on `8025_webm` (chosen automatically; the converted pak can also be
+named `SORX [ob8025_webm].pak`). On the plain `8025` engine the videos are
+skipped and the title screen stays black — press Start to continue.
+
+Both build 8025 engines also provide the two
 script extensions of the SoRX engine that the game uses:
 `getplayerproperty(p, "device_name")` (reported as `"RetroPad"`) and
 `getplayerproperty(p, "button_<action>")` (the bound button, with Xbox-style
@@ -114,7 +139,13 @@ make platform=win             # MinGW     -> openbor_libretro.dll
 make ENGINES="6391 7555"      # choose the engine versions to include
 make DEBUG=1                  # -O0 -g
 make SYSTEM_ZLIB=1 SYSTEM_LIBPNG=1 SYSTEM_VORBIS=1   # use system libraries
+make ENGINES="6391 8025"      # without 8025_webm: no threads, no libvpx
 ```
+
+The `8025_webm` engine additionally builds the VP8 decoder of libvpx 1.15.2
+from `deps/libvpx` (decoder only, portable C, no assembler needed) and links
+pthreads (native Win32 threads on Windows). Objects go to `obj/<platform>/`,
+one subdirectory per engine.
 
 `./build.sh` wraps the same commands (`./build.sh win` for a MinGW cross build,
 `./build.sh test some.pak` for a build plus a headless smoke test).
@@ -148,7 +179,8 @@ The engine runs on a **libco cooperative thread**:
 * `video_copy_screen()` converts the engine's screen (8-bit paletted, 16 or
   32-bit, depending on the version and mod) to XRGB8888 and switches back to
   `retro_run()`, so each `retro_run()` produces exactly one engine frame.
-  Everything runs on the frontend's thread — no locks, no audio thread.
+  Everything runs on the frontend's thread — no locks, no audio thread
+  (except for WebM playback, below).
 * The engine clock is **virtual**: it advances by one 60 Hz frame per
   `retro_run()`, so game speed follows the frontend (fast-forward,
   slow-motion, frame advance). Loops that wait on the clock without drawing
@@ -157,6 +189,14 @@ The engine runs on a **libco cooperative thread**:
   44.1 kHz stereo samples (735 per frame).
 * The mod's real resolution is reported from `retro_get_system_av_info()`;
   later changes use `SET_GEOMETRY` / `SET_SYSTEM_AV_INFO`.
+* WebM playback (`8025_webm`): upstream's decoder runs unchanged
+  in its own threads (demux, video, audio). The port supplies the thread
+  primitives (`libretro/threads.c`), a real audio lock shared by the decoder
+  threads and the mixer called from `retro_run()`, and the video output:
+  each decoded frame is converted from YUV and scaled to the game's
+  resolution, keeping the video's aspect ratio, and the playback loop
+  presents one frame per `retro_run()`. Video timing follows the same virtual
+  clock as the game.
 * Closing content runs the engine's normal shutdown (settings saved, all
   resources freed); quitting from the engine menu asks the frontend to close
   the core.
@@ -167,7 +207,9 @@ them): log/save paths, the loading-screen refresh clock, forced 16-bit/44.1 kHz
 output where the engine still allowed other rates, the rumble entry in the
 control menu, the shutdown/error hooks, and — for build 3711 — larger save
 path buffers (builds 3711 and 4153; they were 128 bytes) and `exit()`
-replaced by the port's exit (3711).
+replaced by the port's exit (3711). For WebM (8025_webm): a libretro branch in
+`threads.h` and the `playwebm()` loops yielding to the frontend instead of
+sleeping.
 Two upstream memory bugs found with valgrind are fixed the same way: build
 6391 allocated the per-frame collision box lists for one entry but filled
 `max_collisons` (2) of them, and build 3711 iterated one element past the
@@ -178,10 +220,13 @@ damage-over-time arrays.
 * No save states and no reset (OpenBOR's global state cannot be reinitialised
   in place). Each engine can be started once per core load; to load another
   game, close the content (RetroArch reloads the core).
-* WebM video cutscenes are not supported (skipped, as on upstream builds
-  without WebM). Animated GIF scenes work. Games that use video for menus
-  show a black screen there (SoRX: logos, intro and the title animation —
-  press Start to continue).
+* WebM videos play only on `8025_webm` (the other engines are built without
+  WebM, so their videos are skipped, as on upstream builds without WebM;
+  animated GIF scenes work everywhere).
+  Videos are shown at the game's resolution (a 1080p video in a 480×272
+  game is scaled down to 480×272). The VP8 decoder is portable C without
+  SIMD: 1080p videos need a reasonably fast CPU, and when the frontend runs
+  faster than real time (fast-forward) video frames are dropped.
 * Gamma correction from the video menu is ignored (brightness works), as in
   the upstream software renderers.
 * Engine 3711 only accepts the numeric `video N` modes of its time.
@@ -197,7 +242,8 @@ damage-over-time arrays.
 
 * `test/frontend.c` — minimal headless libretro frontend (scripted pad input,
   frame dumps to PPM, audio to WAV; core options from environment variables,
-  e.g. `OPENBOR_ENGINE=3711`).
+  e.g. `OPENBOR_ENGINE=3711`; `REALTIME=1` paces frames at 60 Hz like a real
+  frontend, needed to see WebM videos).
 * `test/make_test_mod.py` — generates a tiny synthetic mod (fonts,
   backgrounds, sounds, Vorbis music; `--video-mode N` for 3.x engines).
 * `test/detect_cli.c` — prints the engine auto-detection would pick

@@ -16,6 +16,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -354,10 +355,19 @@ int main(int argc, char **argv)
 
     {
         double t0 = (double)perf_usec();
+        /* REALTIME=1 paces retro_run() at the core's frame rate, like a real
+         * frontend (needed for threaded work such as video decoding). */
+        int realtime = getenv("REALTIME") && atoi(getenv("REALTIME"));
         for (frame_no = 0; frame_no < frames && !shutdown_flag; frame_no++)
         {
             if (unload_at >= 0 && frame_no == unload_at) break;
             p_retro_run();
+            if (realtime)
+            {
+                retro_time_t due = (retro_time_t)t0 + (retro_time_t)((frame_no + 1) * 1e6 / av.timing.fps);
+                retro_time_t now = perf_usec();
+                if (due > now) usleep((useconds_t)(due - now));
+            }
         }
         printf("[timing] %ld frames in %.2f s\n", frame_no, ((double)perf_usec() - t0) / 1e6);
     }

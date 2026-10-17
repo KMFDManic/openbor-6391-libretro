@@ -34,12 +34,36 @@ void SB_playstop(void)
     libretro_audio_started = 0;
 }
 
+#ifdef WEBM
+/* The WebM decoder threads queue PCM into sound channels while the mixer
+ * runs on the frontend thread (retro_run -> glue_mix_audio), so the audio
+ * lock is a real (recursive) mutex in this build. */
+#include "threads.h"
+
+static bor_mutex *audio_mutex = NULL;
+
+void SB_lock_audio_direct(void)
+{
+    if (!audio_mutex)
+        audio_mutex = mutex_create();
+    mutex_lock(audio_mutex);
+}
+
+void SB_unlock_audio_direct(void)
+{
+    mutex_unlock(audio_mutex);
+}
+
+void SB_lock_audio(void) { SB_lock_audio_direct(); }
+void SB_unlock_audio(void) { SB_unlock_audio_direct(); }
+#else
 /* The mixer runs on the frontend thread while the engine is suspended, so
  * no locking is needed. */
 void SB_lock_audio(void) {}
 void SB_unlock_audio(void) {}
 void SB_lock_audio_direct(void) {}
 void SB_unlock_audio_direct(void) {}
+#endif
 
 void SB_setvolume(char dev, char volume)
 {

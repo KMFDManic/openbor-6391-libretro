@@ -2,8 +2,9 @@
  * OpenBOR multi-engine libretro core - libretro entry points.
  *
  * Several OpenBOR engine versions are linked into the core (see ob_api.h).
- * One is chosen per game: by the "Engine version" core option, or
- * automatically from the contents of the .pak (detect.c). If the chosen
+ * One is chosen per game: by the "Engine version" core option, by an
+ * engine tag in the pak's file name (pak_tag.h), or automatically from the
+ * contents of the .pak (detect.c). If the chosen
  * engine fails while loading the game, the next candidate is tried.
  *
  * OpenBOR is written as a blocking program: openborMain() never returns and
@@ -14,13 +15,15 @@
  *                <--co_switch-- host yield_frame()
  *
  * Everything runs on the frontend's thread; the mixer is driven from
- * retro_run() while the engine is suspended.
+ * retro_run() while the engine is suspended. Only WebM playback (engine
+ * 8025_webm) decodes in threads of its own.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <strings.h>
 #include <time.h>
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -32,6 +35,7 @@
 
 #include "ob_api.h"
 #include "detect.h"
+#include "pak_tag.h"
 
 #define FPS              60.0
 #define AUDIO_RATE       44100
@@ -44,21 +48,27 @@
 
 typedef const ob_engine *(*engine_accessor)(void);
 
-static const struct { int id; engine_accessor get; } engines[] = {
+/* id: upstream build (detection vocabulary, data directory);
+ * name: engine name in the core option and in pak tags (pak_tag.h);
+ * webm: built with WebM video playback (preferred for paks with videos) */
+static const struct { int id; const char *name; int webm; engine_accessor get; } engines[] = {
 #ifdef HAVE_ENGINE_3711
-    { 3711, ob_engine_3711 },
+    { 3711, "3711", 0, ob_engine_3711 },
 #endif
 #ifdef HAVE_ENGINE_4153
-    { 4153, ob_engine_4153 },
+    { 4153, "4153", 0, ob_engine_4153 },
 #endif
 #ifdef HAVE_ENGINE_6391
-    { 6391, ob_engine_6391 },
+    { 6391, "6391", 0, ob_engine_6391 },
 #endif
 #ifdef HAVE_ENGINE_7555
-    { 7555, ob_engine_7555 },
+    { 7555, "7555", 0, ob_engine_7555 },
 #endif
 #ifdef HAVE_ENGINE_8025
-    { 8025, ob_engine_8025 },
+    { 8025, "8025", 0, ob_engine_8025 },
+#endif
+#ifdef HAVE_ENGINE_8025_webm
+    { 8025, "8025_webm", 1, ob_engine_8025_webm },
 #endif
 };
 #define NUM_ENGINES ((int)(sizeof(engines) / sizeof(engines[0])))
@@ -294,12 +304,21 @@ static void engine_entry(void)
 /* Core options                                                             */
 /* ------------------------------------------------------------------------ */
 
-static int option_engine_id(void)
+static int engine_by_name(const char *name)
+{
+    int i;
+    for (i = 0; i < NUM_ENGINES; i++)
+        if (!strcasecmp(engines[i].name, name)) return i;
+    return -1;
+}
+
+/* engine index forced in the core options, -1 for auto */
+static int option_engine(void)
 {
     struct retro_variable var = { "openbor_engine", NULL };
     if (environ_cb && environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-        return atoi(var.value); /* "auto" -> 0 */
-    return 0;
+        return engine_by_name(var.value);
+    return -1;
 }
 
 static void set_core_options(void)
@@ -312,7 +331,7 @@ static void set_core_options(void)
     for (i = NUM_ENGINES - 1; i >= 0; i--)
     {
         char tmp[16];
-        snprintf(tmp, sizeof(tmp), "|%d", engines[i].id);
+        snprintf(tmp, sizeof(tmp), "|%s", engines[i].name);
         strcat(engine_values, tmp);
     }
     vars[0].key = "openbor_engine";
@@ -466,12 +485,18 @@ static int compute_paths(const char *content_path, char *root_dir, char *paks_di
     return 1;
 }
 
-static int engine_index(int id)
+/* The engine to use for build `id`: its WebM variant when the pak has
+ * videos, the plain one otherwise (or whichever exists). */
+static int engine_for_build(int id, int want_webm)
 {
-    int i;
+    int i, found = -1;
     for (i = 0; i < NUM_ENGINES; i++)
-        if (engines[i].id == id) return i;
-    return -1;
+        if (engines[i].id == id)
+        {
+            if (engines[i].webm == want_webm) return i;
+            if (found < 0) found = i;
+        }
+    return found;
 }
 
 /* Starts engine `idx` and runs it until it has finished loading the game.
@@ -484,7 +509,7 @@ static int start_engine(int idx, const char *pak, const char *root_dir, const ch
     engine = engines[idx].get();
     if (engine->api_version != OB_API_VERSION)
     {
-        core_log(RETRO_LOG_ERROR, "Engine %d: interface mismatch.\n", engines[idx].id);
+        core_log(RETRO_LOG_ERROR, "Engine %s: interface mismatch.\n", engines[idx].name);
         return 0;
     }
     engine_used[idx] = 1;
@@ -492,8 +517,8 @@ static int start_engine(int idx, const char *pak, const char *root_dir, const ch
 
     /* Each engine version gets its own data directory: the settings, high
      * score and save game files are raw structures whose layout differs
-     * between versions. */
-    snprintf(engine_root, sizeof(engine_root), "%s%s/", root_dir, engine->id);
+     * between versions (the same for a build and its WebM variant). */
+    snprintf(engine_root, sizeof(engine_root), "%s%d/", root_dir, engines[idx].id);
     make_dir(engine_root);
     if (!engine->set_paths(pak, engine_root, paks_dir))
     {
@@ -561,9 +586,9 @@ RETRO_API bool retro_load_game(const struct retro_game_info *game)
 {
     enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
     static char root_dir[PATH_LEN], paks_dir[PATH_LEN];
-    int order[16], n = 0, i, forced, first;
+    int order[16], cand[16], ncand = 0, n = 0, i, forced, first = -1;
     ob_detect_result det;
-    char msg[600];
+    char msg[600], tag[32];
 
     if (!game || !game->path || NUM_ENGINES == 0)
         return false;
@@ -580,28 +605,42 @@ RETRO_API bool retro_load_game(const struct retro_game_info *game)
     unloading = 0;
     shutdown_requested = 0;
 
-    /* Candidate order: forced or detected engine first, then newer ones,
-     * then older ones (newest first). */
-    forced = engine_index(option_engine_id());
+    /* 1. "Engine version" core option, 2. engine tag in the pak's file name
+     * ("Name [ob8025_webm].pak", see pak_tag.h): the engine is used as is.
+     * 3. Auto-detection, then the other engines as fallback: newer ones
+     * first, then older ones. */
+    forced = option_engine();
     if (forced >= 0)
+        core_log(RETRO_LOG_INFO, "Engine %s selected in the core options.\n", engines[forced].name);
+    else if (ob_pak_find_tag(game->path, tag, sizeof(tag), NULL))
     {
-        first = forced;
-        core_log(RETRO_LOG_INFO, "Engine %d selected in the core options.\n", engines[first].id);
+        forced = engine_by_name(tag);
+        if (forced >= 0)
+            core_log(RETRO_LOG_INFO, "Engine %s selected by the file name tag.\n", engines[forced].name);
+        else
+            core_log(RETRO_LOG_WARN, "Unknown engine '%s' in the file name tag, detecting.\n", tag);
     }
+
+    if (forced >= 0)
+        order[n++] = forced;
     else
     {
-        int ids[16];
-        for (i = 0; i < NUM_ENGINES; i++) ids[i] = engines[i].id;
-        ob_detect_version(game->path, ids, NUM_ENGINES, &det);
-        first = engine_index(det.version);
-        if (first < 0) first = NUM_ENGINES - 1;
-        core_log(RETRO_LOG_INFO, "Auto-detected engine %d (%s).\n", engines[first].id, det.reason);
-    }
-    order[n++] = first;
-    if (forced < 0)
-    {
-        for (i = first + 1; i < NUM_ENGINES; i++) order[n++] = i;
-        for (i = first - 1; i >= 0; i--) order[n++] = i;
+        int ids[16], nids = 0;
+        /* one engine per upstream build, oldest first */
+        for (i = 0; i < NUM_ENGINES; i++)
+            if (!nids || ids[nids - 1] != engines[i].id)
+                ids[nids++] = engines[i].id;
+        ob_detect_version(game->path, ids, nids, &det);
+        for (ncand = 0; ncand < nids; ncand++)
+            cand[ncand] = engine_for_build(ids[ncand], det.webm_files > 0);
+        for (i = 0; i < ncand; i++)
+            if (ids[i] == det.version) first = i;
+        if (first < 0) first = ncand - 1;
+        core_log(RETRO_LOG_INFO, "Auto-detected engine %s (%s%s).\n", engines[cand[first]].name, det.reason,
+                 engines[cand[first]].webm ? "; the pak has WebM videos" : "");
+        order[n++] = cand[first];
+        for (i = first + 1; i < ncand; i++) order[n++] = cand[i];
+        for (i = first - 1; i >= 0; i--) order[n++] = cand[i];
     }
 
     msg[0] = 0;
@@ -610,7 +649,7 @@ RETRO_API bool retro_load_game(const struct retro_game_info *game)
         int idx = order[i];
         if (engine_used[idx])
         {
-            core_log(RETRO_LOG_WARN, "Engine %d was already used in this session; restart the core to use it again.\n", engines[idx].id);
+            core_log(RETRO_LOG_WARN, "Engine %s was already used in this session; restart the core to use it again.\n", engines[idx].name);
             continue;
         }
         if (start_engine(idx, game->path, root_dir, paks_dir))
@@ -622,8 +661,8 @@ RETRO_API bool retro_load_game(const struct retro_game_info *game)
             }
             return true;
         }
-        core_log(RETRO_LOG_WARN, "Engine %d could not load the game: %s\n", engines[idx].id, last_error);
-        snprintf(msg, sizeof(msg), "OpenBOR %d: %s", engines[idx].id, last_error);
+        core_log(RETRO_LOG_WARN, "Engine %s could not load the game: %s\n", engines[idx].name, last_error);
+        snprintf(msg, sizeof(msg), "OpenBOR %s: %s", engines[idx].name, last_error);
     }
 
     show_message(msg[0] ? msg : "OpenBOR: no engine could load this game", 600);

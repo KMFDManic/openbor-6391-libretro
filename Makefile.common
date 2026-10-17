@@ -3,7 +3,7 @@
 DEPS_DIR := $(CORE_DIR)/deps
 
 # Engine versions linked into the core (override: make ENGINES="6391 7555")
-ENGINES ?= 3711 4153 6391 7555 8025
+ENGINES ?= 3711 4153 6391 7555 8025 8025_webm
 
 INCFLAGS := \
 	-I$(CORE_DIR)/common \
@@ -85,6 +85,61 @@ SOURCES_C += \
 endif
 
 # ---------------------------------------------------------------------------
+# libvpx (VP8 decoder only, generic C) for the 8025_webm engine
+# ---------------------------------------------------------------------------
+ifneq ($(filter 8025_webm,$(ENGINES)),)
+INCFLAGS += -I$(DEPS_DIR)/libvpx
+SOURCES_C += \
+	$(DEPS_DIR)/libvpx/vp8/common/alloccommon.c \
+	$(DEPS_DIR)/libvpx/vp8/common/blockd.c \
+	$(DEPS_DIR)/libvpx/vp8/common/dequantize.c \
+	$(DEPS_DIR)/libvpx/vp8/common/entropy.c \
+	$(DEPS_DIR)/libvpx/vp8/common/entropymode.c \
+	$(DEPS_DIR)/libvpx/vp8/common/entropymv.c \
+	$(DEPS_DIR)/libvpx/vp8/common/extend.c \
+	$(DEPS_DIR)/libvpx/vp8/common/filter.c \
+	$(DEPS_DIR)/libvpx/vp8/common/findnearmv.c \
+	$(DEPS_DIR)/libvpx/vp8/common/generic/systemdependent.c \
+	$(DEPS_DIR)/libvpx/vp8/common/idct_blk.c \
+	$(DEPS_DIR)/libvpx/vp8/common/idctllm.c \
+	$(DEPS_DIR)/libvpx/vp8/common/loopfilter_filters.c \
+	$(DEPS_DIR)/libvpx/vp8/common/mbpitch.c \
+	$(DEPS_DIR)/libvpx/vp8/common/modecont.c \
+	$(DEPS_DIR)/libvpx/vp8/common/quant_common.c \
+	$(DEPS_DIR)/libvpx/vp8/common/reconinter.c \
+	$(DEPS_DIR)/libvpx/vp8/common/reconintra.c \
+	$(DEPS_DIR)/libvpx/vp8/common/reconintra4x4.c \
+	$(DEPS_DIR)/libvpx/vp8/common/rtcd.c \
+	$(DEPS_DIR)/libvpx/vp8/common/setupintrarecon.c \
+	$(DEPS_DIR)/libvpx/vp8/common/swapyv12buffer.c \
+	$(DEPS_DIR)/libvpx/vp8/common/treecoder.c \
+	$(DEPS_DIR)/libvpx/vp8/common/vp8_loopfilter.c \
+	$(DEPS_DIR)/libvpx/vp8/decoder/dboolhuff.c \
+	$(DEPS_DIR)/libvpx/vp8/decoder/decodeframe.c \
+	$(DEPS_DIR)/libvpx/vp8/decoder/decodemv.c \
+	$(DEPS_DIR)/libvpx/vp8/decoder/detokenize.c \
+	$(DEPS_DIR)/libvpx/vp8/decoder/onyxd_if.c \
+	$(DEPS_DIR)/libvpx/vp8/decoder/threading.c \
+	$(DEPS_DIR)/libvpx/vp8/vp8_dx_iface.c \
+	$(DEPS_DIR)/libvpx/vpx/src/vpx_codec.c \
+	$(DEPS_DIR)/libvpx/vpx/src/vpx_decoder.c \
+	$(DEPS_DIR)/libvpx/vpx/src/vpx_image.c \
+	$(DEPS_DIR)/libvpx/vpx_config.c \
+	$(DEPS_DIR)/libvpx/vpx_dsp/intrapred.c \
+	$(DEPS_DIR)/libvpx/vpx_dsp/prob.c \
+	$(DEPS_DIR)/libvpx/vpx_dsp/vpx_dsp_rtcd.c \
+	$(DEPS_DIR)/libvpx/vpx_mem/vpx_mem.c \
+	$(DEPS_DIR)/libvpx/vpx_scale/generic/gen_scalers.c \
+	$(DEPS_DIR)/libvpx/vpx_scale/generic/vpx_scale.c \
+	$(DEPS_DIR)/libvpx/vpx_scale/generic/yv12config.c \
+	$(DEPS_DIR)/libvpx/vpx_scale/generic/yv12extend.c \
+	$(DEPS_DIR)/libvpx/vpx_scale/vpx_scale_rtcd.c \
+	$(DEPS_DIR)/libvpx/vpx_util/vpx_thread.c
+endif
+
+# ---------------------------------------------------------------------------
 # Engines
 # ---------------------------------------------------------------------------
-$(foreach e,$(ENGINES),$(eval include $(CORE_DIR)/engines/$(e)/libretro/engine.mk))
+# An engine "<build>_<variant>" is defined by engines/<build>/libretro/engine.mk
+ENGINE_DIRS := $(sort $(foreach e,$(ENGINES),$(firstword $(subst _, ,$(e)))))
+$(foreach d,$(ENGINE_DIRS),$(eval include $(CORE_DIR)/engines/$(d)/libretro/engine.mk))

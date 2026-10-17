@@ -526,11 +526,19 @@ void ob_detect_version(const char *pak_path, const int *ids, int count, ob_detec
     char example[16][160];
 
     out->version = count ? ids[count - 1] : -1;
+    out->webm_files = 0;
     snprintf(out->reason, sizeof(out->reason), "could not read the pak, using the newest engine");
     if (count <= 0 || count > 16 || !pak_open(&pak, pak_path))
         return;
 
     memset(&s, 0, sizeof(s));
+
+    for (i = 0; i < pak.count; i++)
+    {
+        size_t n = strlen(pak.entries[i].name);
+        if (n > 5 && !strcmp(pak.entries[i].name + n - 5, ".webm"))
+            out->webm_files++;
+    }
 
     if ((buf = pak_read(&pak, "data/video.txt")))
     {

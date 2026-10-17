@@ -21,8 +21,10 @@
 #include "video.h"
 #include "control.h"
 #include "soundmix.h"
+#include "sblaster.h"
 #include "utils.h"
 #include "ram.h"
+#include "pak_tag.h"
 
 #ifndef OB_ENGINE_ID
 #error OB_ENGINE_ID must be defined (e.g. -DOB_ENGINE_ID=6391)
@@ -59,6 +61,25 @@ char *libretro_root_path(const char *relPath)
     return filename;
 }
 
+/* A pak renamed with an engine tag ("SORX [ob8025_webm].pak", see
+ * pak_tag.h) is still found under its original name ("Paks/SORX.pak"),
+ * which some mods open to check themselves. */
+static const char *tagged_pak_fallback(char *resolved)
+{
+    char untagged[MAX_FILENAME_LEN];
+    FILE *f = fopen(resolved, "rb");
+
+    if (f)
+    {
+        fclose(f);
+        return resolved;
+    }
+    if (ob_pak_untagged_name(packfile, untagged, sizeof(untagged)) &&
+        !strcasecmp(ob_pak_basename(resolved), untagged))
+        snprintf(resolved, MAX_BUFFER_LEN, "%s", packfile);
+    return resolved;
+}
+
 const char *libretro_resolve_game_path(const char *relpath)
 {
     static char resolved[MAX_BUFFER_LEN];
@@ -87,10 +108,10 @@ const char *libretro_resolve_game_path(const char *relpath)
     {
         /* pak not in a Paks folder: Paks/xxx means the pak's own folder */
         snprintf(resolved, sizeof(resolved), "%s/%s", paksDir, relpath + 5);
-        return resolved;
+        return tagged_pak_fallback(resolved);
     }
     snprintf(resolved, sizeof(resolved), "%s/%s", root, relpath);
-    return resolved;
+    return tagged_pak_fallback(resolved);
 }
 
 void libretro_yield_frame(void)          { libretro_host->yield_frame(); }
@@ -196,6 +217,9 @@ static int glue_mix_audio(int16_t *out, int frames)
     if (!libretro_audio_started)
         return 0;
 
+#ifdef WEBM
+    SB_lock_audio(); /* the WebM decoder threads feed the mixer */
+#endif
     if (libretro_audio_bits == 16)
     {
         update_sample((unsigned char *)out, frames * 4);
@@ -208,6 +232,9 @@ static int glue_mix_audio(int16_t *out, int frames)
         for (i = 0; i < frames * 2; i++)
             out[i] = (int16_t)(((int)tmp[i] - 128) << 8);
     }
+#ifdef WEBM
+    SB_unlock_audio();
+#endif
     return 1;
 }
 

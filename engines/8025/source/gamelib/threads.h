@@ -15,6 +15,18 @@
 typedef SDL_Thread bor_thread;
 typedef SDL_mutex bor_mutex;
 typedef SDL_cond bor_cond;
+#elif defined(LIBRETRO)
+/* libretro port: native threads (pthreads, or Win32 on Windows), see
+ * libretro/threads.c. Mutexes are recursive, as SDL's are. The few SDL
+ * helpers used by the WebM decoder are provided here as well. */
+typedef struct bor_thread bor_thread;
+typedef struct bor_mutex bor_mutex;
+typedef struct bor_cond bor_cond;
+typedef struct { volatile int value; } SDL_atomic_t;
+int SDL_AtomicGet(SDL_atomic_t *a);
+int SDL_AtomicSet(SDL_atomic_t *a, int v);
+int SDL_GetCPUCount(void);
+#define SDL_SetThreadPriority(p) ((void)0)
 #else
 #error threads not supported on this platform
 #endif

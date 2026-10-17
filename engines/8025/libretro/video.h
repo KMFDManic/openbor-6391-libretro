@@ -21,4 +21,11 @@ void  video_clearscreen(void);
 void  video_set_color_correction(int, int);
 void  video_exit(void);
 
+#ifdef WEBM
+#include "yuv.h"
+int   video_setup_yuv_overlay(const yuv_video_mode *);
+int   video_prepare_yuv_frame(yuv_frame *);
+int   video_display_yuv_frame(void);
+#endif
+
 #endif

@@ -20,6 +20,7 @@
 #include "video.h"
 #include "vga.h"
 #include "libretroport.h"
+#include "screen.h"
 
 uint32_t *libretro_framebuffer = NULL;
 int libretro_fb_width = 0;
@@ -219,3 +220,87 @@ int video_current_refresh_rate(void)
 void vga_vwait(void)
 {
 }
+
+#ifdef WEBM
+/* ---- WebM playback (playwebm(): exclusive full-screen video) ----
+ *
+ * Upstream hands the decoded YV12 frames to a hardware overlay scaled to the
+ * window. Here each frame is converted and scaled (nearest neighbour) to the
+ * current game resolution, keeping the video's display aspect ratio, so the
+ * frontend geometry does not change during cutscenes. */
+#include "yuv.h"
+
+static yuv_video_mode yuv_mode;
+static s_screen *yuv_screen = NULL;
+
+int video_setup_yuv_overlay(const yuv_video_mode *mode)
+{
+    int w = mode_width ? mode_width : libretro_fb_width;
+    int h = mode_height ? mode_height : libretro_fb_height;
+
+    if (!mode || mode->width <= 0 || mode->height <= 0)
+        return 0;
+    yuv_mode = *mode;
+    if (yuv_mode.display_width <= 0) yuv_mode.display_width = yuv_mode.width;
+    if (yuv_mode.display_height <= 0) yuv_mode.display_height = yuv_mode.height;
+    if (w <= 0 || h <= 0)
+    {
+        w = 320;
+        h = 240;
+    }
+    return ensure_framebuffer(w, h);
+}
+
+int video_prepare_yuv_frame(yuv_frame *src)
+{
+    int fw = libretro_fb_width, fh = libretro_fb_height;
+    int w, h, x0, y0, y;
+
+    if (!src || !libretro_framebuffer || fw <= 0 || fh <= 0)
+        return 0;
+
+    /* largest rectangle with the video's display aspect ratio */
+    w = fw;
+    h = (int)((long long)fw * yuv_mode.display_height / yuv_mode.display_width);
+    if (h > fh)
+    {
+        h = fh;
+        w = (int)((long long)fh * yuv_mode.display_width / yuv_mode.display_height);
+    }
+    if (w < 1) w = 1;
+    if (h < 1) h = 1;
+
+    if (!yuv_screen || yuv_screen->width != w || yuv_screen->height != h)
+    {
+        if (yuv_screen)
+            freescreen(&yuv_screen);
+        yuv_screen = allocscreen(w, h, PIXEL_32);
+        if (!yuv_screen)
+            return 0;
+    }
+    if (!yuv_to_rgb_scaled(src, yuv_screen))
+        return 0;
+
+    /* yuv_to_rgb_scaled() already produces 0x00RRGGBB */
+    x0 = (fw - w) / 2;
+    y0 = (fh - h) / 2;
+    memset(libretro_framebuffer, 0, (size_t)fw * fh * sizeof(uint32_t));
+    for (y = 0; y < h; y++)
+        memcpy(libretro_framebuffer + (size_t)(y0 + y) * fw + x0,
+               (uint32_t *)yuv_screen->data + (size_t)y * w,
+               (size_t)w * sizeof(uint32_t));
+    if (brightness != 0)
+    {
+        size_t i, n = (size_t)fw * fh;
+        for (i = 0; i < n; i++)
+            libretro_framebuffer[i] = apply_brightness(libretro_framebuffer[i]);
+    }
+    return 1;
+}
+
+int video_display_yuv_frame(void)
+{
+    libretro_yield_frame();
+    return 1;
+}
+#endif

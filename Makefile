@@ -60,6 +60,13 @@ endif
 
 include Makefile.common
 
+# WebM playback (engine 8025_webm) decodes in threads (Win32 threads on Windows)
+ifneq ($(filter 8025_webm,$(ENGINES)),)
+   ifneq ($(platform), win)
+      LIBS += -lpthread
+   endif
+endif
+
 ifeq ($(SYSTEM_ZLIB), 1)
    LIBS += -lz
 endif
@@ -82,7 +89,11 @@ CFLAGS += -std=gnu99 -fsigned-char -fno-strict-aliasing -Wall \
           -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function \
           $(fpic) $(DEFINES) $(INCFLAGS)
 
-OBJECTS := $(SOURCES_C:.c=.o)
+# Objects go to obj/<platform>/; each engine has its own subdirectory, as
+# the same sources can be compiled for two engines (8025 and 8025_webm).
+OBJDIR := obj/$(platform)$(if $(filter 1,$(DEBUG)),-debug)
+
+OBJECTS := $(patsubst %.c,$(OBJDIR)/%.o,$(SOURCES_C))
 
 # ---------------------------------------------------------------------------
 # Each engine version is compiled with its own include paths, partially
@@ -90,14 +101,16 @@ OBJECTS := $(SOURCES_C:.c=.o)
 # accessor is made local, so several engines can coexist in the core.
 # ---------------------------------------------------------------------------
 define ENGINE_RULES
-ENGINE_$(1)_OBJECTS := $$(ENGINE_$(1)_SOURCES:.c=.o)
-ENGINE_OBJECTS += $(CORE_DIR)/engines/$(1)/ob_engine_$(1).o
+ENGINE_$(1)_OBJECTS := $$(patsubst %.c,$(OBJDIR)/engine_$(1)/%.o,$$(ENGINE_$(1)_SOURCES))
+ENGINE_OBJECTS += $(OBJDIR)/engines/ob_engine_$(1).o
 CFLAGS += -DHAVE_ENGINE_$(1)
 
-$$(ENGINE_$(1)_OBJECTS): %.o: %.c
+$$(ENGINE_$(1)_OBJECTS): $(OBJDIR)/engine_$(1)/%.o: %.c
+	@mkdir -p $$(dir $$@)
 	$$(CC) $$(CFLAGS) $$(ENGINE_$(1)_FLAGS) -DLIBRETRO -DOB_ENGINE_ID=$(1) '-DOB_ENGINE_NAME="$$(ENGINE_$(1)_NAME)"' -c -o $$@ $$<
 
-$(CORE_DIR)/engines/$(1)/ob_engine_$(1).o: $$(ENGINE_$(1)_OBJECTS)
+$(OBJDIR)/engines/ob_engine_$(1).o: $$(ENGINE_$(1)_OBJECTS)
+	@mkdir -p $$(dir $$@)
 ifeq ($(platform), osx)
 	ld -r $(LDFLAGS) -exported_symbol $(SYM_PREFIX)ob_engine_$(1) -o $$@ $$^
 else
@@ -115,11 +128,11 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS) $(ENGINE_OBJECTS)
 	$(CC) $(fpic) $(SHARED) $(LDFLAGS) -o $@ $(OBJECTS) $(ENGINE_OBJECTS) $(LIBS)
 
-%.o: %.c
+$(OBJDIR)/%.o: %.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f $(OBJECTS) $(TARGET) $(ENGINE_OBJECTS) \
-	      $(foreach e,$(ENGINES),$(ENGINE_$(e)_OBJECTS))
+	rm -rf $(OBJDIR) $(TARGET)
 
 .PHONY: all clean

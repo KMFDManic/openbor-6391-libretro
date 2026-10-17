@@ -52549,7 +52549,15 @@ int playwebm(const char *path, int noskip)
                 screenshot(screenshot_frame, NULL, 0);
             }
         }
+#ifdef LIBRETRO
+        /* one iteration per frontend frame: video_display_yuv_frame()
+         * already yielded when a frame was presented */
+        if(!present_frame) {
+            libretro_yield_idle();
+        }
+#else
         usleep(1000);
+#endif
     }
 
 quit:
@@ -52564,7 +52572,11 @@ quit:
     }
     while(source_id >= 0 && !movie_source_unload(source_id)) {
         movie_playback_update(0);
+#ifdef LIBRETRO
+        libretro_yield_idle();
+#else
         usleep(1000);
+#endif
     }
     return retval;
 }
