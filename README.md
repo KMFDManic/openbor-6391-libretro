@@ -1,116 +1,121 @@
- # OpenBOR
-OpenBOR is a continuation of the Beats Of Rage 2D game engine, which was originally
-created by the wonderful folks over at [Senile Team](http://www.senileteam.com). 
+# OpenBOR v6391 — libretro core
 
-## History
-In 2004, [Senile Team](http://www.senileteam.com) released Beats of Rage, a free beat-'em-up for DOS inspired
-by SEGA's Streets of Rage series and using sprites from SNK Playmore's King of
-Fighters series.  The game spread only by word of mouth, but it nonetheless
-amassed popularity very quickly.  Senile Team soon released an edit pack allowing
-anyone interested to create a module for the BOR engine.
+A [libretro](https://www.libretro.com/) core of the **OpenBOR** beat 'em up engine,
+built from the official **v6391** release (`v3.0 Build 6391`,
+[DCurrent/openbor@v6391](https://github.com/DCurrent/openbor/tree/v6391)).
 
-In 2005, Kirby2000 asked Senile Team to open the source code to BOR.  They
-agreed, and OpenBOR was born.  Development on the engine was continued by the
-community, and still is to this day.
+Build 6391 is the version many existing mods were made for; this core lets you
+run them in RetroArch (or any libretro frontend) with the frontend's input
+mapping, shaders, recording, fast-forward and so on.
 
-## Platforms
-OpenBOR has a very modular and portable design inherited from Beats of Rage - several ports have been made available.
+## Usage
 
-### Current
-These platforms are actively supported and may be compiled with the latest OpenBOR engine.
+Load a mod's `.pak` file as content.
 
-* Android
-* Windows
-* Linux
-* Mac OS X
-* Wii
-* PSP
+The engine's writable data is kept under the frontend's **save directory**
+(falling back to the system directory, then to the content directory):
 
-### Discontinued
+```
+<save dir>/OpenBOR/Saves/        settings (<mod>.cfg), high scores, saved games
+<save dir>/OpenBOR/Logs/         OpenBorLog.txt, ScriptLog.txt
+<save dir>/OpenBOR/ScreenShots/
+```
 
-The following platforms are still available as legacy binaries, but are no longer supported and may not be compatible with current iterations of OpenBOR.
+Check `Logs/OpenBorLog.txt` first when a mod does not start; engine errors are
+also shown as an on-screen message.
 
-* Dreamcast
-* GP2X
-* GP2X Wiz
-* OpenDingux (Dingoo A320 & GCW-Zero)
+### Default controls (RetroPad, up to 4 players)
 
-## OpenBOR Team
+| RetroPad | OpenBOR |
+|---|---|
+| D-Pad | Move |
+| Y | Attack 1 |
+| B | Jump |
+| A | Special |
+| X | Attack 2 |
+| L / R | Attack 3 / Attack 4 |
+| Start | Start / pause |
+| Select (player 1) | Esc (back / exit menus) |
+| R3 | Screenshot |
+| Left stick | Move, when "GamePads/Analog" is enabled in Control Options |
 
-### Current Members
+Buttons can also be remapped from the engine's own *Options → Control Options*
+menu (names are shown as `P1 X`, `P2 Start`, …), or from the frontend.
+Rumble is supported (enable it per player in the same menu).
 
-#### [Damon Caskey](https://github.com/DCurrent) (2007-)
-OpenBOR project manager and site owner of the OpenBOR community. Primary contributions are core engine and scripting development, code cleanup, and organization. Main focus is keeping OpenBOR future proof and modular by replacing specialized hardcoding and overlap with generalized features that allow for more author creativity.
+## Building
 
-#### [Plombo](https://github.com/plombo) (2009-)
-A developer who prefers to work on OpenBOR's supporting libraries and platform-specific backends.  Known for maintaining the Wii port, writing the GPU-accelerated video code for Wii and OpenGL, and a few engine features.
+Everything needed is bundled in `deps/` (zlib, libpng, libogg, libvorbis,
+libretro-common/libco), so only a C compiler and `make` are required.
 
-#### [Douglas Baldan](https://github.com/dbaldan) (2018-)
-Known as O'Ilusionista, Douglas is a highly respected administrator of the OpenBOR community and also a prolific member of the Mugen scene. Douglas is new to coding but brings a plethoera of graphic and game design experience to the team. We look for exciting things from Mr. Baldan soon!
+```sh
+make                      # Linux/BSD -> openbor_libretro.so, macOS -> .dylib
+make platform=win         # MinGW     -> openbor_libretro.dll
+make DEBUG=1              # -O0 -g
+make SYSTEM_ZLIB=1 SYSTEM_LIBPNG=1 SYSTEM_VORBIS=1   # use system libraries
+```
 
-#### [Malik](https://github.com/msmalik681) (2018-)
-Malik comes to the team with a good scripting background. He is still learning his way around application development, but shows a lot of promise and a great willingness to learn. As his skills progress, he will no doubt be a an invaluable asset to the team!
+`./build.sh` wraps the same commands (`./build.sh win` for a MinGW cross build,
+`./build.sh test some.pak` for a build plus a headless smoke test).
 
-### Former members and contributors
+## How the port works
 
-#### [White Dragon](https://github.com/whitedragon0000) (2016-2018)
-A long time module author and extremely knowledgeable coder who joined the development team in 2016. White Dragon generally focused on level and menu properties, but branched out into other facets of the engine over time.
+OpenBOR is a blocking program: `openborMain()` never returns and presents
+frames from deep inside its own loops (menus, scenes, fades, loading screens).
+The port (`engine/libretro/`) runs the unmodified engine on a **libco
+cooperative thread**:
 
-#### uTunnels (2007-2014)
-Among many other powerful additions, contributed the original scripting engine to OpenBOR, single handedly breaking nearly every limitation module authors faced. While not officially retired, uTunnels' presence became gradually more infrequent before stopping altogether in early 2014.
+* `video_copy_screen()` converts the engine's 32-bit screen to XRGB8888 and
+  switches back to `retro_run()`, so each `retro_run()` produces exactly one
+  engine frame. Everything runs on the frontend's thread — no locks, no
+  audio thread.
+* The engine clock is **virtual**: it advances by one 60 Hz frame per
+  `retro_run()`, so game speed follows the frontend (fast-forward, slow-motion,
+  frame advance) and is independent of host timing. Loops that wait on the
+  clock without drawing (e.g. a music-only fade) hand a frame back to the
+  frontend instead of spinning.
+* Audio: `retro_run()` calls the engine mixer (`update_sample()`) for one
+  frame's worth of 44.1 kHz stereo samples (735 per frame).
+* The engine's first `video_set_mode()` happens during `retro_load_game()`,
+  so the mod's real resolution (any `video WxH` in `data/video.txt`) is
+  reported to the frontend; later changes use `SET_GEOMETRY` /
+  `SET_SYSTEM_AV_INFO`.
+* Closing content runs the engine's normal shutdown (settings saved, all
+  resources freed); quitting from the engine menu shows the credits and then
+  asks the frontend to close the core.
 
-#### Anallyst (2011)
-This developer's work centered mainly around trimming the fat and optimizing the codebase.
+Changes to upstream engine files are kept minimal and guarded by
+`#ifdef LIBRETRO` (`git diff` against the first commit shows all of them):
+log/save paths, the loading-screen refresh clock, forcing 16-bit/44.1 kHz
+output, the rumble entry in the control menu, and the shutdown/error hooks.
 
-#### SumolX (2006-2011)
-Former project manager and lead programmer, retired from the scene in 2011. Known for porting PSP, PS3, Linux, Wii, GP2X and maintaining all other platforms and code base.
+## Limitations
 
-#### KBbandressen (2007-2011)
-Contributed a plethora of features, including the powerful text object and filestream capabilities.
+* No save states, no reset (OpenBOR's global state cannot be reinitialised in
+  place); to load another game, close the content and load it again (the
+  frontend reloads the core).
+* WebM video cutscenes are not supported (they are skipped as on other ports
+  built without WebM). Animated GIF scenes work.
+* Gamma correction from the video menu is ignored (brightness works), as in
+  the upstream software renderer.
+* Paths (content and save directory) are limited to 255 characters by the
+  engine.
 
-#### CGRemakes (2005-2006)
-Main developer after Kirby2K. Introduced many exicting features to engine.
+## Testing without a frontend
 
-#### LordBall (2006)
-Developed offshoot engine based on OpenBOR. Shared features with both engines.
+`test/frontend.c` is a minimal headless libretro frontend (scripted pad input,
+frame dumps to PPM, audio to WAV) and `test/make_test_mod.py` generates a tiny
+synthetic mod (fonts, backgrounds, sounds, Vorbis music) that exercises the
+logo, title, menus, options, button remapping, quit and unload paths.
 
-#### Tails (2006)
-Developed offshoot engine based on OpenBOR. Shared features with both engines.
+```sh
+python3 test/make_test_mod.py /tmp/mod      # needs Pillow and ffmpeg
+(cd /tmp/mod && borpak -b -d . ../test.pak) # borpak: upstream tools/borpak
+./build.sh test /tmp/test.pak
+```
 
-#### Fugue (2006)
-Developed offshoot engine based on OpenBOR. Shared features with both engines.
+## License
 
-#### Kirby2K (2004-2005)
-The original developer of OpenBOR who asked Senile Team for permission to open
-up Beats Of Rage.
-
-### [Senile Team](http://www.senileteam.com)
-Senile team was not directly involved with developing OpenBOR, but their opening
-of the orginal Beats of Rage codebase was vital. Parts of the orginal BOR still
-reside in OpenBOR to this day.
-
-#### [Roel](http://www.roelvanmastbergen.nl) (credited as "Opla" in BoR)
-The team's chieftain. Does most of the game design, programming and artwork.
-
-#### Jeroen (credited as "Leila" in BoR)
-Does all the things no one else does.
-
-#### Sander (credited as "Albatross" in BoR)
-3D artist and animation sequence editor.
-
-#### Ben
-Senile Team's composer.
-
-#### [Neill](http://www.neillcorlett.com)
-Neill was the first to port Beats of Rage to other systems, namely Playstation 2
-and Dreamcast. He now supports Senile Team with advice regarding console hardware
-and code compatibility.
-
-## Websites
-### [ChronoCrash](http://www.ChronoCrash.com)
-
-Home of the OpenBOR community and OpenBOR team. This is the place to go if you want to discuss discuss OpenBOR development, find ready to play game modules, or get started building one of your own. 
-
-### [Senile Team](http://www.senileteam.com)
-
-Senile Team is not responsible for OpenBOR, and has also dropped all support for the original Beats of Rage. Instead you should stop in to see their latest projects - you’ll no doubt find something interesting!
+OpenBOR is distributed under the BSD-style license in [LICENSE](LICENSE)
+(the upstream readme is kept as [README-OpenBOR.md](README-OpenBOR.md)).
+Bundled dependencies keep their own licenses (see each directory in `deps/`).
