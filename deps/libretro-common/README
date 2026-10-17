@@ -1,0 +1,4 @@
+Subset of https://github.com/libretro/libretro-common
+
+- include/libretro.h, retro_*.h, boolean.h, libco.h: MIT (see file headers)
+- libco/: public domain / ISC (see file headers)
