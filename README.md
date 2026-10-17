@@ -137,6 +137,10 @@ them): log/save paths, the loading-screen refresh clock, forced 16-bit/44.1 kHz
 output where the engine still allowed other rates, the rumble entry in the
 control menu, the shutdown/error hooks, and — for build 3711 — larger save
 path buffers (they were 128 bytes) and `exit()` replaced by the port's exit.
+Two upstream memory bugs found with valgrind are fixed the same way: build
+6391 allocated the per-frame collision box lists for one entry but filled
+`max_collisons` (2) of them, and build 3711 iterated one element past the
+damage-over-time arrays.
 
 ## Limitations
 
@@ -148,6 +152,10 @@ path buffers (they were 128 bytes) and `exit()` replaced by the port's exit.
 * Gamma correction from the video menu is ignored (brightness works), as in
   the upstream software renderers.
 * Engine 3711 only accepts the numeric `video N` modes of its time.
+* When an engine fails while loading and the next one is tried, the failed
+  engine cannot free what it had loaded (upstream only frees after a
+  complete startup): that memory (typically a few MB to tens of MB) stays
+  allocated until the content is closed.
 * Auto-detection reads vocabulary, not behaviour: a mod that loads on an
   older engine but relies on a newer engine's behaviour may need the
   `Engine version` option.

@@ -12890,7 +12890,14 @@ void common_dot()
 	entity*     eOpp;       //Owner of dot effect.
 	s_attack    attack;     //Attack struct.
 
+#ifdef LIBRETRO
+	// Upstream off-by-one (fixed the same way in later builds): index MAX_DOTS
+	// is past the end of the dot arrays, and modern compilers may miscompile
+	// the loop because of it.
+	for(iIndex=0; iIndex<MAX_DOTS; iIndex++)
+#else
 	for(iIndex=0; iIndex<=MAX_DOTS; iIndex++)                                                   //Loop through all DOT indexes.
+#endif
 	{
 		iDot_time   =   self->dot_time[iIndex];                                                 //Get expire time.
 		iDot_cnt    =   self->dot_cnt[iIndex];                                                  //Get next tick time.

@@ -5571,7 +5571,13 @@ s_collision_attack **collision_alloc_attack_list()
     size_t             alloc_size;
 
     // Get amount of memory we'll need.
+#ifdef LIBRETRO
+    // Upstream bug: the list is filled with max_collisons (default 2)
+    // pointers by addframe() but was allocated for one.
+    alloc_size = sizeof(*result) * (max_collisons > 0 ? max_collisons : 1);
+#else
     alloc_size = sizeof(*result);
+#endif
 
     // Allocate memory and get pointer.
     result = malloc(alloc_size);
@@ -5620,7 +5626,13 @@ s_collision_body **collision_alloc_body_list()
     size_t             alloc_size;
 
     // Get amount of memory we'll need.
+#ifdef LIBRETRO
+    // Upstream bug: the list is filled with max_collisons (default 2)
+    // pointers by addframe() but was allocated for one.
+    alloc_size = sizeof(*result) * (max_collisons > 0 ? max_collisons : 1);
+#else
     alloc_size = sizeof(*result);
+#endif
 
     // Allocate memory and get pointer.
     result = malloc(alloc_size);
@@ -5663,7 +5675,13 @@ s_collision_entity **collision_alloc_entity_list()
     size_t             alloc_size;
 
     // Get amount of memory we'll need.
+#ifdef LIBRETRO
+    // Upstream bug: the list is filled with max_collisons (default 2)
+    // pointers by addframe() but was allocated for one.
+    alloc_size = sizeof(*result) * (max_collisons > 0 ? max_collisons : 1);
+#else
     alloc_size = sizeof(*result);
+#endif
 
     // Allocate memory and get pointer.
     result = malloc(alloc_size);
