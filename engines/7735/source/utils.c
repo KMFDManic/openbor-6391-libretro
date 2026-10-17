@@ -42,13 +42,25 @@
 #include "savepng.h"
 #endif
 
+#ifdef LIBRETRO
+#include "libretroport.h"
+#include "savepng.h"
+#endif
+
 #ifdef WIN
 #define MKDIR(x) mkdir(x)
 #else
 #define MKDIR(x) mkdir(x, 0777)
 #endif
 
-#ifdef WII
+#if LIBRETRO
+#define CHECK_LOGFILE(type)  type ? fileExists(libretro_root_path("Logs/OpenBorLog.txt")) : fileExists(libretro_root_path("Logs/ScriptLog.txt"))
+#define OPEN_LOGFILE(type)   type ? fopen(libretro_root_path("Logs/OpenBorLog.txt"), "wt") : fopen(libretro_root_path("Logs/ScriptLog.txt"), "wt")
+#define APPEND_LOGFILE(type) type ? fopen(libretro_root_path("Logs/OpenBorLog.txt"), "at") : fopen(libretro_root_path("Logs/ScriptLog.txt"), "at")
+#define READ_LOGFILE(type)   type ? fopen(libretro_root_path("Logs/OpenBorLog.txt"), "rt") : fopen(libretro_root_path("Logs/ScriptLog.txt"), "rt")
+#define COPY_ROOT_PATH(buf, name) strcpy(buf, rootDir); strcat(buf, name); strcat(buf, "/");
+#define COPY_PAKS_PATH(buf, name) strcpy(buf, paksDir); strcat(buf, "/"); strcat(buf, name);
+#elif defined(WII)
 #define CHECK_LOGFILE(type)  type ? fileExists(getFullPath("Logs/OpenBorLog.txt")) : fileExists(getFullPath("Logs/ScriptLog.txt"))
 #define OPEN_LOGFILE(type)   type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "wt") : fopen(getFullPath("Logs/ScriptLog.txt"), "wt")
 #define APPEND_LOGFILE(type) type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "at") : fopen(getFullPath("Logs/ScriptLog.txt"), "at")
@@ -359,7 +371,7 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
     getPakName(modname, 99);
     do
     {
-#if SDL || WII
+#if SDL || WII || LIBRETRO
         sprintf(shotname, "%s/%s - %04u.png", screenShotsDir, modname, shotnum);
 #else
         sprintf(shotname, "./ScreenShots/%s - %04u.png", modname, shotnum);

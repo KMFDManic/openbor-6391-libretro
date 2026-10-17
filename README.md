@@ -10,6 +10,7 @@ right one for each game:
 | **v3.0 Build 4153** (2015) | [DCurrent/openbor@4a276c8b](https://github.com/DCurrent/openbor/commit/4a276c8b81fe0fc96d0f98b0e535da802c7417f7) | 2014–2016 mods, e.g. *Super Final Fight Gold Plus* |
 | **v3.0 Build 6391** (2018) | [DCurrent/openbor tag v6391](https://github.com/DCurrent/openbor/tree/v6391) | the long-lived "stable" most mods were built with |
 | **v4.0 Build 7555** (2024) | [DCurrent/openbor@b1676f97](https://github.com/DCurrent/openbor/commit/b1676f97) | recent mods, e.g. *Mighty Final Fight Forever* |
+| **v4.0 Build 7735** (2025) | [DCurrent/openbor@f64d63c2](https://github.com/DCurrent/openbor/commit/f64d63c2fc4e0c6e8993a58fbce1816502fff63a) | 2025 mods, e.g. *Saint Seiya Sagas* (shipped with this build) |
 | **v4.0 Build 8025** (2026) | [DCurrent/openbor@787b6770](https://github.com/DCurrent/openbor/commit/787b6770409935137579715febf80cf7a529b748) | latest upstream |
 | **v4.0 Build 8025 + WebM** (`8025_webm`) | the same | mods with `.webm` videos (intros, logos, animated menus), e.g. *Streets of Rage X* (see below) |
 
@@ -29,8 +30,8 @@ Load a mod's `.pak` file as content.
 
 ### How the engine is chosen
 
-1. **Core option** `Engine version` (`auto`, `8025_webm`, `8025`, `7555`,
-   `6391`, `4153`, `3711`). It can be saved per game with RetroArch's
+1. **Core option** `Engine version` (`auto`, `8025_webm`, `8025`, `7735`,
+   `7555`, `6391`, `4153`, `3711`). It can be saved per game with RetroArch's
    per-game core options. A forced version is used as is.
 2. **Engine tag in the file name**, when the option is `auto`: a pak whose
    name ends with `[ob<engine>]` before `.pak` is started with that engine,

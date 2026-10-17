@@ -95,6 +95,7 @@ const ob_engine *ob_engine_3711(void);
 const ob_engine *ob_engine_4153(void);
 const ob_engine *ob_engine_6391(void);
 const ob_engine *ob_engine_7555(void);
+const ob_engine *ob_engine_7735(void);
 const ob_engine *ob_engine_8025(void);
 const ob_engine *ob_engine_8025_webm(void);
 

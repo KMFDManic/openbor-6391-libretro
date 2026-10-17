@@ -43,6 +43,10 @@
 #define strnicmp strncasecmp
 #endif
 
+#ifdef LIBRETRO
+#include "libretroport.h"
+#endif
+
 #include "packfile.h"
 
 /////////////////////////////////////////////////////////////////////////////

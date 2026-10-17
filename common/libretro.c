@@ -64,6 +64,9 @@ static const struct { int id; const char *name; int webm; engine_accessor get; }
 #ifdef HAVE_ENGINE_7555
     { 7555, "7555", 0, ob_engine_7555 },
 #endif
+#ifdef HAVE_ENGINE_7735
+    { 7735, "7735", 0, ob_engine_7735 },
+#endif
 #ifdef HAVE_ENGINE_8025
     { 8025, "8025", 0, ob_engine_8025 },
 #endif

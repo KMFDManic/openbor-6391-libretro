@@ -85,6 +85,8 @@ else
    CFLAGS += -O2 -DNDEBUG
 endif
 
+# -MMD -MP: header dependencies (obj/**/*.d)
+CFLAGS += -MMD -MP
 CFLAGS += -std=gnu99 -fsigned-char -fno-strict-aliasing -Wall \
           -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function \
           $(fpic) $(DEFINES) $(INCFLAGS)
@@ -131,6 +133,8 @@ $(TARGET): $(OBJECTS) $(ENGINE_OBJECTS)
 $(OBJDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+-include $(OBJECTS:.o=.d) $(foreach e,$(ENGINES),$(ENGINE_$(e)_OBJECTS:.o=.d))
 
 clean:
 	rm -rf $(OBJDIR) $(TARGET)
