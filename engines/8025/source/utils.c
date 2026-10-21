@@ -299,7 +299,7 @@ void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int
         writeToLogFile("Out of memory!\n");
         writeToLogFile("Allocation of size %i failed in function '%s' at %s:%i.\n", size, func, file, line);
 #if LINUX && !DARWIN && !ANDROID
-        writeToLogFile("Memory usage at exit: %u\n", mallinfo2().arena);
+        writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
 #else
         writeToLogFile("Memory usage at exit: %u\n", getUsedRam(BYTES));
 #endif

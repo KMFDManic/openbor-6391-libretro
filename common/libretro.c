@@ -502,11 +502,11 @@ RETRO_API void retro_deinit(void)
 RETRO_API void retro_get_system_info(struct retro_system_info *info)
 {
     memset(info, 0, sizeof(*info));
-    info->library_name     = "OpenBOR";
+    info->library_name     = "OpenBOR Xtreme";
 #ifndef GIT_VERSION
 #define GIT_VERSION ""
 #endif
-    info->library_version  = "multi-engine" GIT_VERSION;
+    info->library_version  = "Amped" GIT_VERSION;
     info->valid_extensions = "pak";
     info->need_fullpath    = true;
     info->block_extract    = false;

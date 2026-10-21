@@ -318,7 +318,7 @@ void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int
 #ifndef WIN
         writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
 #elif LINUX
-        writeToLogFile("Memory usage at exit: %u\n", mallinfo2().arena);
+        writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
 #endif
         borExit(2);
     }
